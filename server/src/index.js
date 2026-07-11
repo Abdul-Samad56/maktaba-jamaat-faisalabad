@@ -62,11 +62,16 @@ if (fs.existsSync(CLIENT_DIST)) {
 
 async function start() {
   const uri = process.env.MONGODB_URI;
-  if (!uri || uri.includes("USERNAME")) {
+  if (!uri || uri.includes("USERNAME") || uri.includes("<db_password>")) {
     console.warn("MONGODB_URI not configured — API will fail on DB routes.");
   } else {
-    await connectDb(uri);
-    console.log("MongoDB Atlas connected");
+    try {
+      await connectDb(uri);
+      console.log("MongoDB Atlas connected");
+    } catch (err) {
+      console.error("MongoDB connection failed:", err.message);
+      console.error("Check MONGODB_URI, Atlas Network Access (0.0.0.0/0), and password.");
+    }
   }
 
   app.listen(PORT, () => {
@@ -77,6 +82,6 @@ async function start() {
 }
 
 start().catch((err) => {
-  console.error(err);
+  console.error("Server failed to start:", err);
   process.exit(1);
 });
