@@ -348,6 +348,23 @@
   flex-wrap: wrap;
 }
 
+.admin-hint {
+  margin: -0.25rem 0 1rem;
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.admin-preview-cover {
+  position: relative;
+  display: inline-block;
+}
+
+.admin-preview-cover .badge-sale {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
 @media (max-width: 900px) {
   .admin-form-grid {
     grid-template-columns: 1fr;

@@ -81,6 +81,7 @@ export const EMPTY_PRODUCT = {
   bookLanguage: "",
   price: "",
   regularPrice: "",
+  discountPercent: "",
   onSale: false,
   available: true,
   sku: "",
@@ -93,7 +94,25 @@ export const EMPTY_PRODUCT = {
   tags: "",
 };
 
+export function calcDiscountPercent(regularPrice, price, onSale) {
+  const reg = Number(regularPrice) || 0;
+  const pr = Number(price) || 0;
+  if (!onSale || reg <= pr || reg <= 0) return 0;
+  return Math.round(((reg - pr) / reg) * 100);
+}
+
+export function priceFromDiscount(regularPrice, discountPercent) {
+  const reg = Number(regularPrice) || 0;
+  const d = Math.min(100, Math.max(0, Number(discountPercent) || 0));
+  if (reg <= 0 || d <= 0) return reg;
+  return Math.round(reg * (1 - d / 100));
+}
+
 export function productToForm(p) {
+  const regularPrice = p.regularPrice ?? "";
+  const price = p.price ?? "";
+  const onSale = !!p.onSale;
+  const discountPercent = calcDiscountPercent(regularPrice, price, onSale);
   return {
     title: p.title || "",
     author: p.author || "",
@@ -102,9 +121,10 @@ export function productToForm(p) {
     category: p.category || "General",
     categories: Array.isArray(p.categories) ? p.categories.join(", ") : "",
     bookLanguage: p.bookLanguage || "",
-    price: p.price ?? "",
-    regularPrice: p.regularPrice ?? "",
-    onSale: !!p.onSale,
+    price,
+    regularPrice,
+    discountPercent: discountPercent > 0 ? String(discountPercent) : "",
+    onSale,
     available: p.available !== false,
     sku: p.sku || "",
     isbn: p.isbn || "",

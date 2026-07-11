@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   EMPTY_PRODUCT,
+  calcDiscountPercent,
   createAdminProduct,
   fetchAdminProduct,
+  priceFromDiscount,
   productToForm,
   updateAdminProduct,
 } from "./adminApi";
@@ -39,15 +41,58 @@ export default function AdminProductForm() {
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }));
 
+  const setRegularPrice = (val) => {
+    setForm((f) => {
+      const d = Number(f.discountPercent) || 0;
+      const reg = Number(val) || 0;
+      const next = { ...f, regularPrice: val };
+      if (d > 0 && reg > 0) {
+        next.price = priceFromDiscount(reg, d);
+        next.onSale = true;
+      }
+      return next;
+    });
+  };
+
+  const setPrice = (val) => {
+    setForm((f) => {
+      const reg = Number(f.regularPrice) || 0;
+      const pr = Number(val) || 0;
+      const d = calcDiscountPercent(reg, pr, true);
+      return {
+        ...f,
+        price: val,
+        discountPercent: d > 0 ? String(d) : "",
+        onSale: d > 0 ? true : f.onSale,
+      };
+    });
+  };
+
+  const setDiscountPercent = (val) => {
+    const d = Math.min(100, Math.max(0, Number(val) || 0));
+    setForm((f) => {
+      const reg = Number(f.regularPrice) || 0;
+      const next = { ...f, discountPercent: val };
+      if (d > 0 && reg > 0) {
+        next.price = priceFromDiscount(reg, d);
+        next.onSale = true;
+      } else if (d === 0) {
+        next.onSale = false;
+      }
+      return next;
+    });
+  };
+
   const onSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
     setError("");
+    const { discountPercent: _drop, ...payload } = form;
     try {
       if (isNew) {
-        await createAdminProduct(form);
+        await createAdminProduct(payload);
       } else {
-        await updateAdminProduct(id, form);
+        await updateAdminProduct(id, payload);
       }
       navigate("/admin");
     } catch (err) {
@@ -61,6 +106,7 @@ export default function AdminProductForm() {
     localImage: form.localImage,
     image: form.image,
   };
+  const previewDiscount = calcDiscountPercent(form.regularPrice, form.price, form.onSale);
 
   if (loading) return <p className="admin-muted">Loading book...</p>;
 
@@ -116,24 +162,40 @@ export default function AdminProductForm() {
 
             <div className="admin-row-2">
               <label>
-                Price (Rs.)
-                <input
-                  type="number"
-                  min="0"
-                  value={form.price}
-                  onChange={(e) => set("price", e.target.value)}
-                />
-              </label>
-              <label>
-                Regular Price (Rs.)
+                Regular Price (Rs.) — اصل قیمت
                 <input
                   type="number"
                   min="0"
                   value={form.regularPrice}
-                  onChange={(e) => set("regularPrice", e.target.value)}
+                  onChange={(e) => setRegularPrice(e.target.value)}
+                />
+              </label>
+              <label>
+                Sale Price (Rs.) — رعایت کے بعد
+                <input
+                  type="number"
+                  min="0"
+                  value={form.price}
+                  onChange={(e) => setPrice(e.target.value)}
                 />
               </label>
             </div>
+
+            <label>
+              Discount % — رعایت (مثلاً 20 = -20% badge)
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={form.discountPercent}
+                onChange={(e) => setDiscountPercent(e.target.value)}
+                placeholder="e.g. 20"
+              />
+            </label>
+            <p className="admin-hint">
+              Regular Price 1000 + Discount 20% → Sale Price 800 automatically. &quot;On sale&quot; is
+              checked when discount is set.
+            </p>
 
             <div className="admin-checks">
               <label>
@@ -205,7 +267,10 @@ export default function AdminProductForm() {
 
           <aside className="admin-preview">
             <h3>Cover Preview</h3>
-            <img src={imageUrl(preview)} alt="Preview" className="admin-preview-img" />
+            <div className="admin-preview-cover">
+              <img src={imageUrl(preview)} alt="Preview" className="admin-preview-img" />
+              {previewDiscount > 0 && <span className="badge-sale">-{previewDiscount}%</span>}
+            </div>
             <p className="admin-muted">
               Local path images are served from the پبلیشرز folder via /images/
             </p>
