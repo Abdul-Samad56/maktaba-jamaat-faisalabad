@@ -1,4 +1,5 @@
 import { API_BASE, imagePath } from "./config";
+import { parseJsonResponse } from "./parseJson";
 
 async function fetchJson(url, retries = 2) {
   let lastError;
@@ -9,7 +10,7 @@ async function fetchJson(url, retries = 2) {
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timer);
       if (!res.ok) throw new Error(`Request failed (${res.status})`);
-      return res.json();
+      return parseJsonResponse(res);
     } catch (err) {
       lastError = err;
       if (attempt < retries) await new Promise((r) => setTimeout(r, 4000));

@@ -1,4 +1,5 @@
 import { API_BASE } from "../config";
+import { parseJsonResponse } from "../parseJson";
 
 const TOKEN_KEY = "admin_token";
 const ADMIN_BASE = `${API_BASE}/admin`;
@@ -25,7 +26,7 @@ async function adminFetch(path, options = {}) {
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(`${ADMIN_BASE}${path}`, { ...options, headers });
-  const data = await res.json().catch(() => ({}));
+  const data = await parseJsonResponse(res);
   if (!res.ok) throw new Error(data.error || "Request failed");
   return data;
 }
