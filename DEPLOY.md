@@ -59,14 +59,17 @@ git push -u origin main
 ### Step 2 — Frontend on Vercel
 
 1. [vercel.com](https://vercel.com) → **Add New Project** → GitHub repo
-2. Settings:
+2. Settings (**IMPORTANT**):
 
 | Setting | Value |
 |---------|--------|
-| Root Directory | `client` |
-| Framework | Vite |
+| **Root Directory** | `client` |
+| Framework Preset | **Vite** |
 | Build Command | `npm run build` |
-| Output | `dist` |
+| Output Directory | `dist` |
+| Install Command | `npm install` |
+
+**یا** repo root سے deploy کریں (root `vercel.json` خود settings set کرتا ہے) — Root Directory **خالی** رکھیں۔
 
 3. **Environment Variables:**
 
