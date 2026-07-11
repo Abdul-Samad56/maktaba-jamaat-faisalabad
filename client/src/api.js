@@ -23,8 +23,9 @@ export async function fetchProduct(id) {
 }
 
 export function imageUrl(product) {
-  if (product.localImage) return imagePath(product.localImage);
+  // Prefer online URL (works on Render/Vercel); local files only on PC/VPS
   if (product.image) return product.image;
+  if (product.localImage) return imagePath(product.localImage);
   return "/placeholder-book.svg";
 }
 
