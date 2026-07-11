@@ -40,6 +40,7 @@ export default function ProductPage() {
           <img
             src={imageUrl(product)}
             alt={product.title}
+            referrerPolicy="no-referrer"
             onError={(e) => {
               e.target.src = "/placeholder-book.svg";
             }}

@@ -14,6 +14,7 @@ export default function ProductCard({ product }) {
           src={imageUrl(product)}
           alt={product.title}
           loading="lazy"
+          referrerPolicy="no-referrer"
           onError={(e) => {
             e.target.src = "/placeholder-book.svg";
           }}

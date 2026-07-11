@@ -1,25 +1,39 @@
 import { API_BASE, imagePath } from "./config";
 
+async function fetchJson(url, retries = 2) {
+  let lastError;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 90000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timer);
+      if (!res.ok) throw new Error(`Request failed (${res.status})`);
+      return res.json();
+    } catch (err) {
+      lastError = err;
+      if (attempt < retries) await new Promise((r) => setTimeout(r, 4000));
+    }
+  }
+  throw lastError?.name === "AbortError"
+    ? new Error("Server is waking up — wait 60 seconds and refresh the page.")
+    : lastError || new Error("Failed to fetch");
+}
+
 export async function fetchProducts(params = {}) {
   const qs = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {
     if (v !== undefined && v !== null && v !== "") qs.set(k, v);
   });
-  const res = await fetch(`${API_BASE}/products?${qs}`);
-  if (!res.ok) throw new Error("Failed to load products");
-  return res.json();
+  return fetchJson(`${API_BASE}/products?${qs}`);
 }
 
 export async function fetchFilters() {
-  const res = await fetch(`${API_BASE}/products/filters`);
-  if (!res.ok) throw new Error("Failed to load filters");
-  return res.json();
+  return fetchJson(`${API_BASE}/products/filters`);
 }
 
 export async function fetchProduct(id) {
-  const res = await fetch(`${API_BASE}/products/${id}`);
-  if (!res.ok) throw new Error("Product not found");
-  return res.json();
+  return fetchJson(`${API_BASE}/products/${id}`);
 }
 
 export function imageUrl(product) {
