@@ -166,6 +166,7 @@ import {
 } from "./nameIdSeo";
 import {
   SITE_CITY,
+  SITE_DEFAULT_DESCRIPTION,
   SITE_KEYWORDS,
   SITE_NAME,
   SITE_PHONE_DISPLAY,
