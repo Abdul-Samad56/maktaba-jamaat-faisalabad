@@ -84,7 +84,7 @@ const CATEGORY_LABELS = {
   fiqa: "Fiqa / فقہ",
   fiqh: "Fiqa / فقہ",
   tarikh: "Tarikh / تاریخ",
-  tafseer: "Tafheem / Tafseer / تفہیم القرآن",
+  tafseer: "Tafseer",
   seerat: "Seerat un Nabi",
   "dars-e-nizami": "Dars e Nizami",
 };
