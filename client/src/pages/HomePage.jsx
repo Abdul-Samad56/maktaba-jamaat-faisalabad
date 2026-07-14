@@ -830,9 +830,9 @@ export default function HomePage() {
       <section className="hero hero-compact">
         <div className="container">
           <p className="hero-brand">{SITE_NAME}</p>
-          <h1>Islam | Islami | Islamic | Islamiat | اسلام اسلامی اسلامیات</h1>
+          <h1>مکتبہ جماعت اسلامی فیصل آباد</h1>
           <p>
-            اسلام، اسلامی اور اسلامیات کی کتب آن لائن — مکتبہ جماعت اسلامی فیصل آباد۔ WhatsApp{" "}
+            اسلامی کتب آن لائن آرڈر کریں — چنیوٹ بازار، فیصل آباد۔ WhatsApp{" "}
             {SITE_PHONE_DISPLAY}
           </p>
         </div>
@@ -862,7 +862,7 @@ export default function HomePage() {
           <div className="collection-header">
             <h2 className="collection-heading">
               {category === "all" && !search
-                ? "اسلام اسلامی اسلامیات / Islam Islami Islamic Islamiat"
+                ? "All Books"
                 : `Collection: ${CATEGORY_LABELS[category] || category}`}
             </h2>
             <div className="collection-meta">
