@@ -10,4 +10,21 @@ export default defineConfig({
       "/images": "http://localhost:5000",
     },
   },
+  build: {
+    target: "es2020",
+    cssMinify: true,
+    modulePreload: { polyfill: false },
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules/react-dom") || id.includes("node_modules/react/")) {
+            return "react";
+          }
+          if (id.includes("node_modules/react-router")) {
+            return "router";
+          }
+        },
+      },
+    },
+  },
 });

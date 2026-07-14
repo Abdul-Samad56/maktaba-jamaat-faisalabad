@@ -1,5 +1,16 @@
+import { Link, useSearchParams } from "react-router-dom";
+
 export default function Pagination({ page, pages, onChange }) {
+  const [params] = useSearchParams();
   if (pages <= 1) return null;
+
+  const hrefFor = (n) => {
+    const next = new URLSearchParams(params);
+    if (n <= 1) next.delete("page");
+    else next.set("page", String(n));
+    const qs = next.toString();
+    return qs ? `/?${qs}` : "/";
+  };
 
   const nums = [];
   const start = Math.max(1, page - 2);
@@ -8,22 +19,52 @@ export default function Pagination({ page, pages, onChange }) {
 
   return (
     <nav className="pagination" aria-label="Pagination">
-      <button type="button" disabled={page <= 1} onClick={() => onChange(page - 1)}>
-        ‹
-      </button>
+      {page > 1 ? (
+        <Link
+          to={hrefFor(page - 1)}
+          rel="prev"
+          onClick={(e) => {
+            e.preventDefault();
+            onChange(page - 1);
+          }}
+        >
+          ‹
+        </Link>
+      ) : (
+        <span className="pagination-disabled" aria-disabled="true">
+          ‹
+        </span>
+      )}
       {nums.map((n) => (
-        <button
+        <Link
           key={n}
-          type="button"
+          to={hrefFor(n)}
           className={n === page ? "active" : ""}
-          onClick={() => onChange(n)}
+          aria-current={n === page ? "page" : undefined}
+          onClick={(e) => {
+            e.preventDefault();
+            onChange(n);
+          }}
         >
           {n}
-        </button>
+        </Link>
       ))}
-      <button type="button" disabled={page >= pages} onClick={() => onChange(page + 1)}>
-        ›
-      </button>
+      {page < pages ? (
+        <Link
+          to={hrefFor(page + 1)}
+          rel="next"
+          onClick={(e) => {
+            e.preventDefault();
+            onChange(page + 1);
+          }}
+        >
+          ›
+        </Link>
+      ) : (
+        <span className="pagination-disabled" aria-disabled="true">
+          ›
+        </span>
+      )}
     </nav>
   );
 }

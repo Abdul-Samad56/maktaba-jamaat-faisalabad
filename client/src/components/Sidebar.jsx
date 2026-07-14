@@ -2,6 +2,7 @@ export default function Sidebar({ filters, values, onChange, onApply, onClear, o
   if (!filters) return null;
 
   const set = (key, val) => onChange({ ...values, [key]: val });
+  const categories = filters.categories || [];
 
   return (
     <aside className="sidebar">
@@ -15,12 +16,11 @@ export default function Sidebar({ filters, values, onChange, onApply, onClear, o
       </div>
 
       <div className="filter-group">
-        <label>Publisher / Source</label>
-        <select value={values.source || ""} onChange={(e) => set("source", e.target.value)}>
-          <option value="">All sources</option>
-          {filters.sources.map((s) => (
-            <option key={s} value={s}>
-              {s}
+        <label>Category</label>
+        <select value={values.category || "all"} onChange={(e) => set("category", e.target.value)}>
+          {categories.map((c) => (
+            <option key={c.id || c} value={c.id || c}>
+              {c.label || c}
             </option>
           ))}
         </select>
@@ -30,21 +30,9 @@ export default function Sidebar({ filters, values, onChange, onApply, onClear, o
         <label>Author</label>
         <select value={values.author || ""} onChange={(e) => set("author", e.target.value)}>
           <option value="">All authors</option>
-          {filters.authors.slice(0, 200).map((a) => (
+          {(filters.authors || []).slice(0, 200).map((a) => (
             <option key={a} value={a}>
               {a}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="filter-group">
-        <label>Publisher</label>
-        <select value={values.publisher || ""} onChange={(e) => set("publisher", e.target.value)}>
-          <option value="">All publishers</option>
-          {filters.publishers.slice(0, 200).map((p) => (
-            <option key={p} value={p}>
-              {p}
             </option>
           ))}
         </select>
@@ -54,7 +42,7 @@ export default function Sidebar({ filters, values, onChange, onApply, onClear, o
         <label>Language</label>
         <select value={values.language || ""} onChange={(e) => set("language", e.target.value)}>
           <option value="">All languages</option>
-          {filters.languages.map((l) => (
+          {(filters.languages || []).map((l) => (
             <option key={l} value={l}>
               {l}
             </option>
@@ -78,6 +66,17 @@ export default function Sidebar({ filters, values, onChange, onApply, onClear, o
             onChange={(e) => set("maxPrice", e.target.value)}
           />
         </div>
+      </div>
+
+      <div className="filter-group">
+        <label>
+          <input
+            type="checkbox"
+            checked={values.onSale === "true"}
+            onChange={(e) => set("onSale", e.target.checked ? "true" : "")}
+          />{" "}
+          On sale only
+        </label>
       </div>
 
       <div className="filter-group">

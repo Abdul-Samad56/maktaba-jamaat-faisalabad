@@ -1,4 +1,5 @@
 import { Link, Outlet, useNavigate } from "react-router-dom";
+import Seo from "../components/Seo";
 import { adminLogout } from "./adminApi";
 import "./admin.css";
 
@@ -12,6 +13,7 @@ export default function AdminLayout() {
 
   return (
     <div className="admin-app">
+      <Seo title="Admin" description="Admin panel" path="/admin" noindex />
       <header className="admin-header">
         <div className="admin-header-inner">
           <Link to="/admin" className="admin-brand">

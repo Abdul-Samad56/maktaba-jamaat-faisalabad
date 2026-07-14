@@ -3,6 +3,9 @@ import mongoose from "mongoose";
 const productSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, index: true },
+    titleEn: { type: String, default: "", index: true },
+    titleUr: { type: String, default: "", index: true },
+    searchIndex: { type: String, default: "", index: true },
     author: { type: String, default: "", index: true },
     publisher: { type: String, default: "", index: true },
     source: { type: String, required: true, index: true },
@@ -20,11 +23,14 @@ const productSchema = new mongoose.Schema(
     image: { type: String, default: "" },
     localImage: { type: String, default: "" },
     productLink: { type: String, default: "" },
+    /** SEO URL slug — unique public path /product/{slug} */
+    slug: { type: String, index: true, unique: true, sparse: true },
     tags: [{ type: String }],
   },
   { timestamps: true }
 );
 
-productSchema.index({ title: "text", author: "text", description: "text" });
+productSchema.index({ title: "text", titleEn: "text", titleUr: "text", author: "text" });
+productSchema.index({ searchIndex: 1 });
 
 export default mongoose.model("Product", productSchema);

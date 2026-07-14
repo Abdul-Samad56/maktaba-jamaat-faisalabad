@@ -4,10 +4,13 @@ import { Link, useSearchParams } from "react-router-dom";
 const CATEGORIES = [
   { id: "all", label: "All Books" },
   { id: "quran", label: "Quran" },
-  { id: "tafseer", label: "Tafseer" },
-  { id: "hadith", label: "Hadith" },
-  { id: "seerat", label: "Seerat un Nabi" },
-  { id: "dars-e-nizami", label: "Dars e Nizami" },
+  { id: "tafseer", label: "Tafheem / Tafseer" },
+  { id: "para", label: "Para" },
+  { id: "tarjuma", label: "Tarjuma" },
+  { id: "hadees", label: "Hadees" },
+  { id: "fiqa", label: "Fiqa" },
+  { id: "tarikh", label: "Tarikh" },
+  { id: "seerat", label: "Seerat" },
 ];
 
 function scrollToProducts() {
@@ -50,7 +53,7 @@ export default function Header() {
     <header className="header">
       <div className="header-top">
         <span className="header-top-text">
-          Maktaba Jamaat e Islami Faisalabad — Islamic Books Catalog
+          Maktaba Jamaat e Islami Faisalabad — مکتبہ جماعت اسلامی فیصل آباد | Islamic Books Online
         </span>
       </div>
       <div className="container header-main">
@@ -87,7 +90,7 @@ export default function Header() {
         </nav>
 
         <form className="search-box" onSubmit={onSearch}>
-          <input name="search" type="search" placeholder="Search books..." defaultValue={search} />
+          <input name="search" type="search" placeholder="Search اردو / English..." defaultValue={search} />
           <button type="submit">Search</button>
         </form>
       </div>

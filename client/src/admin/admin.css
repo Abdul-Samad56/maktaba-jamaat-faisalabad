@@ -52,7 +52,7 @@
 }
 
 .admin-main {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 1.25rem 1rem 2rem;
 }
@@ -69,6 +69,87 @@
   gap: 1rem;
   margin-bottom: 1.25rem;
   flex-wrap: wrap;
+}
+
+.admin-title-ur {
+  margin-top: 0.2rem;
+  font-size: 0.85rem;
+  color: #0f3d26;
+  font-weight: 600;
+}
+
+.admin-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.admin-main-col {
+  min-width: 0;
+}
+
+.admin-filters {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  padding: 1rem;
+  position: sticky;
+  top: 4.5rem;
+}
+
+.admin-filters-head h3 {
+  margin: 0 0 0.85rem;
+  font-size: 1rem;
+}
+
+.admin-filter-group {
+  margin-bottom: 0.85rem;
+}
+
+.admin-filter-group label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: #444;
+}
+
+.admin-filter-group select,
+.admin-filter-group input[type="number"] {
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid #d0d5d2;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background: #fff;
+}
+
+.admin-price-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.admin-filter-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.admin-filter-actions .admin-btn {
+  width: 100%;
+}
+
+@media (max-width: 900px) {
+  .admin-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-filters {
+    position: static;
+  }
 }
 
 .admin-stats {

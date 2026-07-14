@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Seo from "../components/Seo";
 import { adminLogin } from "./adminApi";
 import "./admin.css";
 
@@ -26,6 +27,7 @@ export default function AdminLogin() {
 
   return (
     <div className="admin-login-page">
+      <Seo title="Admin Login" description="Admin login" path="/admin/login" noindex />
       <form className="admin-login-card" onSubmit={onSubmit}>
         <h1>Admin Login</h1>
         <p>Maktaba Jamaat e Islami Faisalabad</p>

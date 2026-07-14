@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+
+Sitemap: https://maktaba-jamaat-e-islami-faisalabad.vercel.app/sitemap.xml

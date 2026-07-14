@@ -6,6 +6,7 @@ import { fileURLToPath } from "url";
 import XLSX from "xlsx";
 import Product from "../models/Product.js";
 import { connectDb } from "../db.js";
+import { applyBilingualFields, splitBilingualTitle } from "../utils/bilingual.js";
 
 dotenv.config();
 
@@ -67,11 +68,15 @@ function num(v) {
 
 function inferCategory(title, category) {
   const t = `${title} ${category}`.toLowerCase();
-  if (/quran|qaidah|qaida|tajweed|sipara|para|surah|قرآن/i.test(t)) return "Quran";
+  if (/sipara|siparah|para\b|juz|پارہ|سیپارہ|جزو/i.test(t)) return "Para";
+  if (/tarjuma|tarjama|ترجمہ|ترجمه/i.test(t)) return "Tarjuma";
   if (/tafseer|tafsir|tafheem|تفسیر/i.test(t)) return "Tafseer";
-  if (/hadith|hadees|bukhari|muslim|mishkat|حدیث/i.test(t)) return "Hadith";
+  if (/hadith|hadees|bukhari|muslim|mishkat|حدیث|احادیث/i.test(t)) return "Hadees";
+  if (/tarikh|tareekh|history|تاریخ|تاريخ/i.test(t)) return "Tarikh";
+  if (/fiqh|fiqa|فقہ|فقه|masail|مسائل/i.test(t)) return "Fiqa";
+  if (/quran|qaidah|qaida|tajweed|surah|قرآن|مصحف/i.test(t)) return "Quran";
   if (/seerat|seerah|sirah|biography|سیرت/i.test(t)) return "Seerat un Nabi";
-  if (/fiqh|dars|nizami|فقہ/i.test(t)) return "Dars e Nizami";
+  if (/dars|nizami|درس نظامی/i.test(t)) return "Dars e Nizami";
   return category || "General";
 }
 
@@ -100,8 +105,31 @@ function findLocalImage(source, title, rowNum) {
 }
 
 function rowToProduct(row, cols, meta) {
-  const title = val(row, findCol(cols, TITLE_COLS));
+  const titleRaw = val(row, findCol(cols, TITLE_COLS));
+  const titleEnCol = val(
+    row,
+    findCol(cols, ["Title English", "English Title", "titleEn"])
+  );
+  const titleUrCol = val(
+    row,
+    findCol(cols, ["کتاب (اردو)", "Title Urdu", "Urdu Title", "titleUr"])
+  );
+
+  let title = titleRaw;
+  let titleEn = titleEnCol;
+  let titleUr = titleUrCol;
+
+  if (!titleEn && !titleUr && title) {
+    const split = splitBilingualTitle(title);
+    titleEn = split.titleEn;
+    titleUr = split.titleUr;
+  }
+
+  if (!title && (titleEn || titleUr)) title = titleEn || titleUr;
   if (!title) return null;
+
+  const author = val(row, findCol(cols, AUTHOR_COLS));
+  const bilingual = applyBilingualFields({ title, titleEn, titleUr, author });
 
   const price = num(val(row, findCol(cols, PRICE_COLS)));
   const regularPrice = num(val(row, findCol(cols, REG_COLS))) || price;
@@ -110,15 +138,18 @@ function rowToProduct(row, cols, meta) {
   const availVal = val(row, findCol(cols, AVAIL_COLS)).toLowerCase();
 
   const rowNum = val(row, findCol(cols, ["نمبر", "Product No.", "Sr #"])) || meta.index;
-  const localImage = findLocalImage(meta.sourceFolder, title, rowNum);
+  const localImage = findLocalImage(meta.sourceFolder, bilingual.title, rowNum);
   const remoteImage = val(row, findCol(cols, IMAGE_COLS));
 
   return {
-    title,
-    author: val(row, findCol(cols, AUTHOR_COLS)),
+    title: bilingual.title,
+    titleEn: bilingual.titleEn,
+    titleUr: bilingual.titleUr,
+    searchIndex: bilingual.searchIndex,
+    author,
     publisher: val(row, findCol(cols, PUBLISHER_COLS)) || meta.sourceFolder,
     source: meta.sourceFolder,
-    category: inferCategory(title, categoryRaw),
+    category: inferCategory(`${bilingual.title} ${bilingual.titleEn} ${bilingual.titleUr}`, categoryRaw),
     categories: categoryRaw ? categoryRaw.split(",").map((s) => s.trim()) : [],
     bookLanguage: val(row, findCol(cols, LANG_COLS)),
     price,

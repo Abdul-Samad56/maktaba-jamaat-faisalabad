@@ -88,6 +88,12 @@ export default function AdminProductForm() {
     setSaving(true);
     setError("");
     const { discountPercent: _drop, ...payload } = form;
+    if (!payload.titleEn && !payload.titleUr && !payload.title) {
+      setError("English یا اردو عنوان ضروری ہے");
+      setSaving(false);
+      return;
+    }
+    payload.title = payload.titleEn || payload.titleUr || payload.title;
     try {
       if (isNew) {
         await createAdminProduct(payload);
@@ -125,8 +131,37 @@ export default function AdminProductForm() {
         <div className="admin-form-grid">
           <div className="admin-form-fields">
             <label>
-              Title *
-              <input value={form.title} onChange={(e) => set("title", e.target.value)} required />
+              Title (English)
+              <input
+                value={form.titleEn}
+                onChange={(e) => {
+                  const titleEn = e.target.value;
+                  setForm((f) => ({
+                    ...f,
+                    titleEn,
+                    title: titleEn || f.titleUr || f.title,
+                  }));
+                }}
+                placeholder="e.g. Tafheem ul Quran"
+              />
+            </label>
+
+            <label>
+              عنوان (اردو)
+              <input
+                value={form.titleUr}
+                onChange={(e) => {
+                  const titleUr = e.target.value;
+                  setForm((f) => ({
+                    ...f,
+                    titleUr,
+                    title: f.titleEn || titleUr || f.title,
+                  }));
+                }}
+                placeholder="مثلاً تفہیم القرآن"
+                dir="rtl"
+                lang="ur"
+              />
             </label>
 
             <label>

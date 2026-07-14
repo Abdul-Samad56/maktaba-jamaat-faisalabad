@@ -6,7 +6,8 @@
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
     "seed": "node src/seed/importData.js",
-    "seed:dry": "node src/seed/dryRun.js"
+    "seed:dry": "node src/seed/dryRun.js",
+    "fix:stock-discount": "node src/seed/fixStockAndDiscount.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

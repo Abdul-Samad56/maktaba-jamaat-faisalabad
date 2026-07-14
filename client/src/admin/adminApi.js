@@ -48,6 +48,10 @@ export async function fetchAdminStats() {
   return adminFetch("/stats");
 }
 
+export async function fetchAdminFilters() {
+  return adminFetch("/filters");
+}
+
 export async function fetchAdminProducts(params = {}) {
   const qs = new URLSearchParams();
   Object.entries(params).forEach(([k, v]) => {
@@ -72,8 +76,18 @@ export async function deleteAdminProduct(id) {
   return adminFetch(`/products/${id}`, { method: "DELETE" });
 }
 
+export async function runStockDiscountFix() {
+  return adminFetch("/maintenance/stock-discount", { method: "POST" });
+}
+
+export async function runBilingualTitlesFix() {
+  return adminFetch("/maintenance/bilingual-titles", { method: "POST" });
+}
+
 export const EMPTY_PRODUCT = {
   title: "",
+  titleEn: "",
+  titleUr: "",
   author: "",
   publisher: "",
   source: "Maktaba Jamaat e Islami Faisalabad",
@@ -116,6 +130,8 @@ export function productToForm(p) {
   const discountPercent = calcDiscountPercent(regularPrice, price, onSale);
   return {
     title: p.title || "",
+    titleEn: p.titleEn || "",
+    titleUr: p.titleUr || "",
     author: p.author || "",
     publisher: p.publisher || "",
     source: p.source || "",

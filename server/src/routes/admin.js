@@ -1,6 +1,8 @@
 import { Router } from "express";
 import Product from "../models/Product.js";
 import { authAdmin, signAdminToken } from "../middleware/authAdmin.js";
+import { applyBilingualFields, buildBilingualSearchQuery } from "../utils/bilingual.js";
+import { buildProductSlug } from "../utils/productSlug.js";
 
 const router = Router();
 
@@ -16,8 +18,20 @@ function parseTags(val) {
 function productPayload(body) {
   const price = Number(body.price) || 0;
   const regularPrice = Number(body.regularPrice) || price;
+  const tags = parseTags(body.tags);
+  const bilingual = applyBilingualFields({
+    title: String(body.title || body.titleEn || body.titleUr || "").trim(),
+    titleEn: String(body.titleEn || "").trim(),
+    titleUr: String(body.titleUr || "").trim(),
+    author: String(body.author || "").trim(),
+    tags,
+  });
+
   return {
-    title: String(body.title || "").trim(),
+    title: bilingual.title,
+    titleEn: bilingual.titleEn,
+    titleUr: bilingual.titleUr,
+    searchIndex: bilingual.searchIndex,
     author: String(body.author || "").trim(),
     publisher: String(body.publisher || "").trim(),
     source: String(body.source || "").trim(),
@@ -35,7 +49,7 @@ function productPayload(body) {
     image: String(body.image || "").trim(),
     localImage: String(body.localImage || "").trim(),
     productLink: String(body.productLink || "").trim(),
-    tags: parseTags(body.tags),
+    tags,
   };
 }
 
@@ -76,23 +90,82 @@ router.get("/stats", authAdmin, async (_req, res) => {
   }
 });
 
+router.get("/filters", authAdmin, async (_req, res) => {
+  try {
+    const [authors, publishers, sources, languages, categories, priceRange] = await Promise.all([
+      Product.distinct("author"),
+      Product.distinct("publisher"),
+      Product.distinct("source"),
+      Product.distinct("bookLanguage"),
+      Product.distinct("category"),
+      Product.aggregate([
+        { $group: { _id: null, min: { $min: "$price" }, max: { $max: "$price" } } },
+      ]),
+    ]);
+
+    res.json({
+      authors: authors.filter(Boolean).sort(),
+      publishers: publishers.filter(Boolean).sort(),
+      sources: sources.filter(Boolean).sort(),
+      languages: languages.filter(Boolean).sort(),
+      categories: categories.filter(Boolean).sort(),
+      priceMin: priceRange[0]?.min || 0,
+      priceMax: priceRange[0]?.max || 0,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get("/products", authAdmin, async (req, res) => {
   try {
-    const { page = 1, limit = 20, search = "" } = req.query;
+    const {
+      page = 1,
+      limit = 20,
+      search = "",
+      author,
+      publisher,
+      source,
+      language,
+      category,
+      minPrice,
+      maxPrice,
+      available,
+      onSale,
+    } = req.query;
+
     const filter = {};
-    if (search) filter.$text = { $search: search };
+    const term = String(search || "").trim();
+    if (term) {
+      Object.assign(filter, buildBilingualSearchQuery(term) || {});
+    }
+    if (author) filter.author = new RegExp(String(author).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    if (publisher) {
+      filter.publisher = new RegExp(String(publisher).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    }
+    if (source) filter.source = source;
+    if (language) {
+      filter.bookLanguage = new RegExp(String(language).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    }
+    if (category) {
+      filter.category = new RegExp(String(category).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
+    }
+    if (available === "true") filter.available = true;
+    if (available === "false") filter.available = false;
+    if (onSale === "true") filter.onSale = true;
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = Number(minPrice);
+      if (maxPrice) filter.price.$lte = Number(maxPrice);
+    }
 
     const pageNum = Math.max(1, Number(page));
     const pageSize = Math.min(100, Math.max(1, Number(limit)));
     const skip = (pageNum - 1) * pageSize;
 
     const [total, items] = await Promise.all([
-      search ? Product.countDocuments(filter) : Product.countDocuments(filter),
-      Product.find(filter)
-        .sort(search ? { score: { $meta: "textScore" } } : { updatedAt: -1 })
-        .skip(skip)
-        .limit(pageSize)
-        .lean(),
+      Product.countDocuments(filter),
+      Product.find(filter).sort({ updatedAt: -1 }).skip(skip).limit(pageSize).lean(),
     ]);
 
     res.json({
@@ -123,6 +196,10 @@ router.post("/products", authAdmin, async (req, res) => {
     if (!data.source) return res.status(400).json({ error: "Source is required" });
 
     const product = await Product.create(data);
+    if (!product.slug) {
+      product.slug = buildProductSlug(product, product._id);
+      await product.save();
+    }
     res.status(201).json(product);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -134,6 +211,11 @@ router.put("/products/:id", authAdmin, async (req, res) => {
     const data = productPayload(req.body);
     if (!data.title) return res.status(400).json({ error: "Title is required" });
     if (!data.source) return res.status(400).json({ error: "Source is required" });
+
+    const existing = await Product.findById(req.params.id).lean();
+    if (!existing) return res.status(404).json({ error: "Not found" });
+
+    data.slug = existing.slug || buildProductSlug({ ...existing, ...data }, existing._id);
 
     const product = await Product.findByIdAndUpdate(req.params.id, data, {
       new: true,
@@ -152,6 +234,39 @@ router.delete("/products/:id", authAdmin, async (req, res) => {
     const product = await Product.findByIdAndDelete(req.params.id).lean();
     if (!product) return res.status(404).json({ error: "Not found" });
     res.json({ ok: true, deleted: product._id });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** One-click: all books in stock + reduce discounts by 10 percentage points. */
+router.post("/maintenance/stock-discount", authAdmin, async (_req, res) => {
+  try {
+    const { applyStockAndDiscountFix } = await import("../seed/stockDiscountFix.js");
+    const result = await applyStockAndDiscountFix(Product);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** Backfill titleEn / titleUr / searchIndex for bilingual display + search. */
+router.post("/maintenance/bilingual-titles", authAdmin, async (_req, res) => {
+  try {
+    const { applyBilingualTitlesFix } = await import("../seed/bilingualTitlesFix.js");
+    const result = await applyBilingualTitlesFix(Product);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/** Backfill SEO slugs for every book (/product/{slug}). */
+router.post("/maintenance/product-slugs", authAdmin, async (_req, res) => {
+  try {
+    const { backfillProductSlugs } = await import("../utils/productSlug.js");
+    const result = await backfillProductSlugs(Product, { limit: 5000 });
+    res.json({ ok: true, ...result });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

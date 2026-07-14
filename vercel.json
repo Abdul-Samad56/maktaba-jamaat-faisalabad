@@ -3,5 +3,23 @@
   "installCommand": "npm run install:all",
   "buildCommand": "npm run build",
   "outputDirectory": "client/dist",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://maktaba-jamaat-faisalabad.onrender.com/api/:path*"
+    },
+    {
+      "source": "/images/:path*",
+      "destination": "https://maktaba-jamaat-faisalabad.onrender.com/images/:path*"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "https://maktaba-jamaat-faisalabad.onrender.com/sitemap.xml"
+    },
+    {
+      "source": "/product/:id",
+      "destination": "https://maktaba-jamaat-faisalabad.onrender.com/ssr/product/:id"
+    },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
 }

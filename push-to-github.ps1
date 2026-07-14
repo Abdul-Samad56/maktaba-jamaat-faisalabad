@@ -5,6 +5,11 @@
 $ErrorActionPreference = "Stop"
 $projectPath = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location $projectPath
+$safeDir = (Get-Location).Path -replace '\\','/'
+
+function Git($args) {
+  & git -c "safe.directory=$safeDir" @args
+}
 
 $repoName = "maktaba-jamaat-faisalabad"
 $githubUser = "Abdul-Samad56"
@@ -22,25 +27,27 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
 }
 
 if (-not (Test-Path ".git")) {
-    git init
-    git branch -M main
+    Git init
+    Git branch -M main
+    Git config user.email "$githubUser@users.noreply.github.com"
+    Git config user.name "Abdul Samad"
 }
 
-git add .
-git status
+Git add .
+Git status
 
-$hasChanges = git diff --cached --quiet; $exitCode = $LASTEXITCODE
-if ($exitCode -ne 0) {
-    git commit -m "Maktaba Jamaat e Islami Faisalabad — Islamic books website"
+$null = Git diff --cached --quiet 2>$null
+if ($LASTEXITCODE -ne 0) {
+    Git commit -m "Update Maktaba Jamaat e Islami Faisalabad website"
 } else {
     Write-Host "Koi nayi changes nahi — commit skip." -ForegroundColor Yellow
 }
 
-$remotes = git remote 2>$null
+$remotes = Git remote 2>$null
 if ($remotes -notcontains "origin") {
-    git remote add origin $remoteUrl
+    Git remote add origin $remoteUrl
 } else {
-    git remote set-url origin $remoteUrl
+    Git remote set-url origin $remoteUrl
 }
 
 Write-Host ""
@@ -52,7 +59,7 @@ Write-Host "  4. Create repository" -ForegroundColor White
 Write-Host ""
 Read-Host "Repo banane ke baad Enter dabayein"
 
-git push -u origin main
+Git push -u origin main
 
 Write-Host ""
 Write-Host "Done! Repo URL:" -ForegroundColor Green

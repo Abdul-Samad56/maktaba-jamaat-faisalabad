@@ -5,7 +5,10 @@ export default function Footer() {
         <div>
           <img src="/logo.png" alt="Maktaba Jamaat e Islami Faisalabad" className="logo-image logo-square" />
           <h4>Maktaba Jamaat e Islami Faisalabad</h4>
-          <p>Complete catalog from multiple Pakistani Islamic publishers.</p>
+          <p>
+            مکتبہ جماعت اسلامی فیصل آباد — Islamic books online، چنیوٹ بازار، فیصل آباد۔ WhatsApp:
+            0321-5315603
+          </p>
         </div>
         <div>
           <h4>Office Address</h4>
