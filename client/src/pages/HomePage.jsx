@@ -41,19 +41,15 @@ import {
   roadmapSeoBlurb,
   ROADMAP_FEATURED,
   ROADMAP_TERM_COUNT,
-  ROADMAP_KEYWORDS_PER_TERM,
   numbersWiseSeoBlurb,
   NUMBERS_WISE_FEATURED,
   NUMBERS_WISE_TERM_COUNT,
-  NUMBERS_WISE_KEYWORDS_PER_TERM,
   joiningKSeoBlurb,
   JOINING_K_FEATURED,
   JOINING_K_TERM_COUNT,
-  JOINING_K_KEYWORDS_PER_TERM,
   nameIdSeoBlurb,
   NAME_ID_FEATURED,
   NAME_ID_TERM_COUNT,
-  NAME_ID_KEYWORDS_PER_TERM,
 } from "../seoKeywords";
 import { ROADMAP_CITIES } from "../roadmapSeo";
 import { MAKTABA_ISLAMIA, PUBLISHER_SEO } from "../publishersSeo";
@@ -1089,24 +1085,10 @@ export default function HomePage() {
       </section>
 
       <section className="seo-featured-publisher container" aria-label="Faisalabad Islamic books">
-        <h2>Faisalabad Areas / فیصل آباد کے علاقے ({FAISALABAD_AREAS.length}+)</h2>
+        <h2>Islamic Books Faisalabad / اسلامی کتب فیصل آباد</h2>
         <p>
-          {faisalabadAreasSeoBlurb()} دفتر: گلی نمبر 8، چنیوٹ بازار۔ WhatsApp {SITE_PHONE_DISPLAY}.
+          {faisalabadSeoBlurb()} دفتر: گلی نمبر 8، چنیوٹ بازار۔ WhatsApp {SITE_PHONE_DISPLAY}.
         </p>
-        <div className="seo-area-links">
-          {FAISALABAD_AREAS_FEATURED.map((a, i) => (
-            <span key={`${a.en}-${i}`}>
-              {i > 0 ? " · " : null}
-              <a
-                className="seo-featured-link"
-                href={`/?search=${encodeURIComponent(a.en)}`}
-                title={`${a.en} Faisalabad`}
-              >
-                {a.ur && a.ur !== a.en ? a.ur : a.en}
-              </a>
-            </span>
-          ))}
-        </div>
         <p>
           <a className="seo-featured-link" href="/">
             Islamic books Faisalabad / اسلامی کتب فیصل آباد
@@ -1119,116 +1101,6 @@ export default function HomePage() {
             Search Faisalabad
           </a>
         </p>
-      </section>
-
-      <section className="seo-featured-publisher container" aria-label="Road Map persons and cities">
-        <h2>
-          مشہور شخصیات و شہر / Famous topics ({ROADMAP_TERM_COUNT}+ × {ROADMAP_KEYWORDS_PER_TERM}{" "}
-          keywords)
-        </h2>
-        <p>
-          {roadmapAreasCitiesBlurb()} WhatsApp {SITE_PHONE_DISPLAY}.
-        </p>
-        <div className="seo-area-links">
-          {ROADMAP_FEATURED.map((term, i) => (
-            <span key={`${term}-${i}`}>
-              {i > 0 ? " · " : null}
-              <a
-                className="seo-featured-link"
-                href={`/?search=${encodeURIComponent(term)}`}
-                title={`${term} books online`}
-              >
-                {term}
-              </a>
-            </span>
-          ))}
-        </div>
-        <p>
-          {ROADMAP_CITIES.filter((c) => /^[A-Za-z]/.test(c))
-            .slice(0, 30)
-            .map((city, i) => (
-              <span key={city}>
-                {i > 0 ? " · " : null}
-                <a
-                  className="seo-featured-link"
-                  href={`/?search=${encodeURIComponent(city)}`}
-                >
-                  {city}
-                </a>
-              </span>
-            ))}
-        </p>
-      </section>
-
-      <section className="seo-featured-publisher container" aria-label="NUMBERS Wise topics">
-        <h2>
-          بڑے سرچ موضوعات / NUMBERS Wise ({NUMBERS_WISE_TERM_COUNT}+ ×{" "}
-          {NUMBERS_WISE_KEYWORDS_PER_TERM} keywords)
-        </h2>
-        <p>
-          {numbersWiseSeoBlurb("Islamic topics")} WhatsApp {SITE_PHONE_DISPLAY}.
-        </p>
-        <div className="seo-area-links">
-          {NUMBERS_WISE_FEATURED.slice(0, 80).map((term, i) => (
-            <span key={`nw-${term}-${i}`}>
-              {i > 0 ? " · " : null}
-              <a
-                className="seo-featured-link"
-                href={`/?search=${encodeURIComponent(term)}`}
-                title={`${term} books online`}
-              >
-                {term}
-              </a>
-            </span>
-          ))}
-        </div>
-      </section>
-
-      <section className="seo-featured-publisher container" aria-label="Joining K topics">
-        <h2>
-          فیصل آباد کمیونٹیز / Joining K ({JOINING_K_TERM_COUNT}+ × {JOINING_K_KEYWORDS_PER_TERM}{" "}
-          keywords)
-        </h2>
-        <p>
-          {joiningKSeoBlurb("Faisalabad communities")} WhatsApp {SITE_PHONE_DISPLAY}.
-        </p>
-        <div className="seo-area-links">
-          {JOINING_K_FEATURED.slice(0, 80).map((term, i) => (
-            <span key={`jk-${term}-${i}`}>
-              {i > 0 ? " · " : null}
-              <a
-                className="seo-featured-link"
-                href={`/?search=${encodeURIComponent(term)}`}
-                title={`${term} books online`}
-              >
-                {term}
-              </a>
-            </span>
-          ))}
-        </div>
-      </section>
-
-      <section className="seo-featured-publisher container" aria-label="NAME ID search names">
-        <h2>
-          سرچ نام / NAME ID ({NAME_ID_TERM_COUNT}+ × {NAME_ID_KEYWORDS_PER_TERM} keywords)
-        </h2>
-        <p>
-          {nameIdSeoBlurb("Islamic names")} WhatsApp {SITE_PHONE_DISPLAY}.
-        </p>
-        <div className="seo-area-links">
-          {NAME_ID_FEATURED.slice(0, 80).map((term, i) => (
-            <span key={`nid-${term}-${i}`}>
-              {i > 0 ? " · " : null}
-              <a
-                className="seo-featured-link"
-                href={`/?search=${encodeURIComponent(term)}`}
-                title={`${term} books online`}
-              >
-                {term}
-              </a>
-            </span>
-          ))}
-        </div>
       </section>
 
       <section className="seo-featured-publisher container" aria-label="Islamic books online">
