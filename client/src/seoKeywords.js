@@ -649,7 +649,7 @@ export function homeSeoTitle({ category = "all", search = "", page = 1 } = {}) {
   }
   return page > 1
     ? `Islamic Books Online — Page ${page} | ${SITE_NAME}`
-    : `Islam | Islami | Islamic | Islamiat | اسلام اسلامی اسلامیات`;
+    : SITE_NAME;
 }
 
 export function homeSeoDescription({ category = "all", search = "", page = 1 } = {}) {
@@ -761,10 +761,7 @@ export function homeSeoDescription({ category = "all", search = "", page = 1 } =
       170
     );
   }
-  return truncate(
-    `${islamSeoBlurb()} Islamic books online. WhatsApp ${SITE_PHONE_DISPLAY}.`,
-    170
-  );
+  return truncate(SITE_DEFAULT_DESCRIPTION, 170);
 }
 
 export {

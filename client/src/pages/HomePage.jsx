@@ -511,7 +511,7 @@ export default function HomePage() {
         {
           "@type": "CollectionPage",
           "@id": `${SITE_URL}/#islam-islami-islamic`,
-          name: "Islam | Islami | Islamic | Islamiat | اسلام اسلامی اسلامیات",
+          name: "Maktaba Jamaat e Islami Faisalabad | مکتبہ جماعت اسلامی فیصل آباد",
           url: `${SITE_URL}/?search=${encodeURIComponent(ISLAM_SEO.searchQuery)}`,
           description: islamSeoBlurb(),
           isPartOf: { "@id": `${SITE_URL}/#website` },
