@@ -4,7 +4,7 @@ import { Link, useSearchParams } from "react-router-dom";
 const CATEGORIES = [
   { id: "all", label: "All Books" },
   { id: "quran", label: "Quran" },
-  { id: "tafseer", label: "Tafheem / Tafseer" },
+  { id: "tafseer", label: "Tafseer" },
   { id: "para", label: "Para" },
   { id: "tarjuma", label: "Tarjuma" },
   { id: "hadees", label: "Hadees" },
