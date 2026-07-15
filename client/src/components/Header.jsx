@@ -111,9 +111,6 @@ export default function Header() {
             <span className="logo-text">
               <span className="logo-line">Maktaba Jamaat e Islami</span>
               <strong>Faisalabad</strong>
-              <span className="logo-urdu" lang="ur" dir="rtl">
-                مکتبہ جماعت اسلامی فیصل آباد
-              </span>
             </span>
           </Link>
           <button
