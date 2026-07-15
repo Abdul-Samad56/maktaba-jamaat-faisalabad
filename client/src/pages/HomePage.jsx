@@ -832,9 +832,11 @@ export default function HomePage() {
         <div className="container">
           <p className="hero-brand">{SITE_NAME}</p>
           <h1>مکتبہ جماعت اسلامی فیصل آباد</h1>
-          <p>
-            اسلامی کتب آن لائن آرڈر کریں — چنیوٹ بازار، فیصل آباد۔ WhatsApp{" "}
-            {SITE_PHONE_DISPLAY}
+          <p className="hero-address" dir="rtl">
+            گلی نمبر 8، چنیوٹ بازار فیصل آباد
+          </p>
+          <p className="hero-order" dir="rtl">
+            اسلامی کتب آن لائن آرڈر کریں آگے میرا نمبر {SITE_PHONE_DISPLAY}
           </p>
         </div>
       </section>

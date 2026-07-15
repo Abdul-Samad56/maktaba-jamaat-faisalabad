@@ -1110,6 +1110,20 @@ button {
   opacity: 0.9;
 }
 
+.hero-address {
+  margin: 0.15rem 0 0.35rem;
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: #f3e6b8;
+  opacity: 1;
+}
+
+.hero-order {
+  margin: 0;
+  font-size: 0.95rem;
+  opacity: 0.95;
+}
+
 /* Product detail page */
 .product-page {
   padding: 1.25rem 0 2.5rem;
