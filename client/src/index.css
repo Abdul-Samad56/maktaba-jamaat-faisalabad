@@ -101,7 +101,7 @@ button {
   display: flex;
   width: max-content;
   gap: 3rem;
-  animation: header-ticker-rtl 32s linear infinite;
+  animation: header-ticker-ltr 32s linear infinite;
   will-change: transform;
 }
 
@@ -157,12 +157,12 @@ button {
   flex-shrink: 0;
 }
 
-@keyframes header-ticker-rtl {
+@keyframes header-ticker-ltr {
   from {
-    transform: translateX(0);
+    transform: translateX(-50%);
   }
   to {
-    transform: translateX(-50%);
+    transform: translateX(0);
   }
 }
 
