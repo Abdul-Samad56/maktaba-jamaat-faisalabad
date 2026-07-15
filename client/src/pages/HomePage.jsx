@@ -794,6 +794,7 @@ export default function HomePage() {
     const next = new URLSearchParams(params);
     next.set("page", String(p));
     setParams(next);
+    document.getElementById("products-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
   const setSort = (e) => {
