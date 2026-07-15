@@ -836,7 +836,10 @@ export default function HomePage() {
             گلی نمبر 8، چنیوٹ بازار فیصل آباد
           </p>
           <p className="hero-order" dir="rtl">
-            اسلامی کتب آن لائن آرڈر کریں آگے میرا نمبر {SITE_PHONE_DISPLAY}
+            اسلامی کتب آن لائن آرڈر کریں{" "}
+            <span className="hero-phone" dir="ltr">
+              {SITE_PHONE_DISPLAY}
+            </span>
           </p>
         </div>
       </section>
