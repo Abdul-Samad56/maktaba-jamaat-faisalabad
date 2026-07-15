@@ -5,6 +5,8 @@ import Pagination from "../components/Pagination";
 import ProductCard from "../components/ProductCard";
 import Seo from "../components/Seo";
 import Sidebar from "../components/Sidebar";
+import CategoryGrid from "../components/CategoryGrid";
+import TrustStrip from "../components/TrustStrip";
 import {
   SITE_DEFAULT_DESCRIPTION,
   SITE_NAME,
@@ -830,19 +832,27 @@ export default function HomePage() {
       />
       <section className="hero hero-compact">
         <div className="container">
-          <p className="hero-brand">{SITE_NAME}</p>
-          <h1>مکتبہ جماعت اسلامی فیصل آباد</h1>
-          <p className="hero-address" dir="rtl">
-            گلی نمبر 8، چنیوٹ بازار فیصل آباد
-          </p>
-          <p className="hero-order" dir="rtl">
-            اسلامی کتب آن لائن آرڈر کریں{" "}
-            <span className="hero-phone" dir="ltr">
-              {SITE_PHONE_DISPLAY}
-            </span>
-          </p>
+          <div className="hero-frame">
+            <p className="hero-brand">{SITE_NAME}</p>
+            <h1>مکتبہ جماعت اسلامی فیصل آباد</h1>
+            <p className="hero-tagline" dir="rtl">
+              اسلامی کتابوں کا معتبر مرکز
+            </p>
+            <p className="hero-address" dir="rtl">
+              گلی نمبر 8، چنیوٹ بازار فیصل آباد
+            </p>
+            <p className="hero-order" dir="rtl">
+              اسلامی کتب آن لائن آرڈر کریں{" "}
+              <span className="hero-phone" dir="ltr">
+                {SITE_PHONE_DISPLAY}
+              </span>
+            </p>
+          </div>
         </div>
       </section>
+
+      <CategoryGrid />
+      <TrustStrip />
 
       <div className="container page-layout">
         {showFilters && (
