@@ -385,23 +385,46 @@ export function expandSynonyms(query) {
 
 /**
  * Find the best synonym group for spelling suggestions.
- * Returns display forms (original dictionary strings), not only normalized.
+ * Exact dictionary hits win — never suggest پارہ for پردہ via fuzzy distance.
  */
 export function suggestSpellings(query, limit = 5) {
   const n = normalizeSearch(query);
   if (!n || n.length < 2) return [];
 
-  const suggestions = [];
+  const exactGroups = [];
+  const partialGroups = [];
+  const fuzzyGroups = [];
+
   for (const group of SYNONYM_GROUPS) {
-    const hit = group.some((a) => {
+    let kind = null;
+    for (const a of group) {
       const na = normalizeSearch(a);
-      return na === n || na.includes(n) || n.includes(na) || levenshteinLite(n, na) <= 2;
-    });
-    if (hit) {
-      for (const label of group) {
-        if (!suggestions.includes(label)) suggestions.push(label);
-        if (suggestions.length >= limit) return suggestions;
+      if (na === n) {
+        kind = "exact";
+        break;
       }
+      if (na.includes(n) || (n.length >= 3 && n.includes(na) && na.length >= 3)) {
+        if (kind !== "exact") kind = "partial";
+      } else if (levenshteinLite(n, na) <= 1) {
+        if (!kind) kind = "fuzzy";
+      }
+    }
+    if (kind === "exact") exactGroups.push(group);
+    else if (kind === "partial") partialGroups.push(group);
+    else if (kind === "fuzzy") fuzzyGroups.push(group);
+  }
+
+  const picked = exactGroups.length
+    ? exactGroups
+    : partialGroups.length
+      ? partialGroups
+      : fuzzyGroups;
+
+  const suggestions = [];
+  for (const group of picked) {
+    for (const label of group) {
+      if (!suggestions.includes(label)) suggestions.push(label);
+      if (suggestions.length >= limit) return suggestions;
     }
   }
   return suggestions;

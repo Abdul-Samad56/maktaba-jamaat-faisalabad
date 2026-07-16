@@ -28,6 +28,13 @@ const LIST_FIELDS =
 
 /** Cache: whether Atlas Search index is available (null = unknown). */
 let atlasAvailable = null;
+/** Skip Atlas after repeated empty responses (misconfigured index). */
+let atlasEmptyStreak = 0;
+
+/** Atlas is opt-in — broken/empty indexes must not block regex search. */
+function isAtlasEnabled() {
+  return process.env.ATLAS_SEARCH_ENABLED === "true" && atlasAvailable !== false;
+}
 
 const suggestCache = new Map();
 const SUGGEST_TTL = 30_000;
@@ -292,8 +299,8 @@ export async function searchProducts(query, options = {}) {
   // Fire-and-forget analytics
   logSearch(q).catch(() => {});
 
-  // Try Atlas Search unless we already know it's unavailable
-  if (atlasAvailable !== false) {
+  // Try Atlas Search only when explicitly enabled and not marked unavailable
+  if (isAtlasEnabled()) {
     try {
       const pipeline = buildAtlasSearchPipeline(q, {
         skip,
@@ -305,16 +312,29 @@ export async function searchProducts(query, options = {}) {
         const items = facet?.items || [];
         const total = facet?.totalCount?.[0]?.count ?? items.length;
         atlasAvailable = true;
-        return {
-          items,
-          total,
-          page: pageNum,
-          pages: Math.ceil(total / pageSize) || 1,
-          limit: pageSize,
-          engine: "atlas",
-          query: q,
-          highlightTerms: expandSynonyms(q).slice(0, 20),
-        };
+
+        // Atlas index may exist but return nothing (misconfigured / stale).
+        // Fall through to regex search so real catalog matches still work.
+        if (total > 0 && items.length > 0) {
+          atlasEmptyStreak = 0;
+          return {
+            items,
+            total,
+            page: pageNum,
+            pages: Math.ceil(total / pageSize) || 1,
+            limit: pageSize,
+            engine: "atlas",
+            query: q,
+            highlightTerms: expandSynonyms(q).slice(0, 20),
+          };
+        }
+        atlasEmptyStreak += 1;
+        if (atlasEmptyStreak >= 2) {
+          atlasAvailable = false;
+          console.warn("[search] Atlas disabled after repeated empty results");
+        } else {
+          console.warn("[search] Atlas returned 0 hits — using fallback for:", q);
+        }
       }
     } catch (err) {
       if (isAtlasSearchUnavailable(err)) {
@@ -365,12 +385,15 @@ export async function getSuggestions(query, limit = 8) {
   const phraseSuggestions = buildSuggestionPhrases(q).slice(0, limit);
   let products = [];
 
-  if (atlasAvailable !== false) {
+  if (isAtlasEnabled()) {
     try {
       const pipeline = buildAtlasSuggestPipeline(q, limit);
       if (pipeline) {
         products = await Product.aggregate(pipeline).option({ maxTimeMS: 5000 });
         atlasAvailable = true;
+        if (!products.length) {
+          // fall through to regex suggestions below
+        }
       }
     } catch (err) {
       if (isAtlasSearchUnavailable(err)) atlasAvailable = false;
