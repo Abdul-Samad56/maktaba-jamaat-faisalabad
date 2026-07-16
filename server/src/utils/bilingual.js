@@ -119,28 +119,58 @@ export function expandSearchTerms(query) {
 
 /**
  * Build Mongo query for bilingual search against searchIndex + title fields.
+ * Reuses smart filter so "Parda پردہ" is OR (same concept), not AND.
  */
 export function buildBilingualSearchQuery(search) {
+  // Dynamic import avoided — keep sync API via shared smart filter shape.
+  // Local mirror of synonym-aware clustering for legacy callers.
   const terms = expandSearchTerms(search);
   if (!terms.length) return null;
 
-  // Prefer AND of significant tokens from the original query for precision
   const primaryTokens = normalizeSearch(search)
     .split(/\s+/)
     .filter((t) => t.length >= 2);
 
-  if (primaryTokens.length >= 2) {
-    return {
-      $and: primaryTokens.map((token) => {
-        const aliases = expandSearchTerms(token);
-        return { $or: aliases.flatMap((a) => searchFieldClauses(a)) };
-      }),
-    };
+  if (primaryTokens.length < 2) {
+    return { $or: terms.flatMap((a) => searchFieldClauses(a)) };
   }
 
-  // Single term / short query: match any expanded alias
+  const hasLatin = primaryTokens.some((t) => /[a-z0-9]/i.test(t));
+  const hasUrdu = primaryTokens.some((t) => /[\u0600-\u06FF]/.test(t));
+
+  // Cluster synonym-equivalent tokens (Parda + پردہ → one concept)
+  const used = new Set();
+  const clusters = [];
+  for (let i = 0; i < primaryTokens.length; i++) {
+    if (used.has(i)) continue;
+    const cluster = [primaryTokens[i]];
+    const expI = new Set(expandSearchTerms(primaryTokens[i]));
+    used.add(i);
+    for (let j = i + 1; j < primaryTokens.length; j++) {
+      if (used.has(j)) continue;
+      const expJ = expandSearchTerms(primaryTokens[j]);
+      if (expJ.some((t) => expI.has(t))) {
+        cluster.push(primaryTokens[j]);
+        expJ.forEach((t) => expI.add(t));
+        used.add(j);
+      }
+    }
+    clusters.push(cluster);
+  }
+
+  // Bilingual same-concept or single cluster → OR
+  if ((hasLatin && hasUrdu && clusters.length === 1) || clusters.length === 1) {
+    const aliases = [
+      ...new Set(clusters[0].flatMap((token) => expandSearchTerms(token))),
+    ];
+    return { $or: aliases.flatMap((a) => searchFieldClauses(a)) };
+  }
+
   return {
-    $or: terms.flatMap((a) => searchFieldClauses(a)),
+    $and: clusters.map((cluster) => {
+      const aliases = [...new Set(cluster.flatMap((token) => expandSearchTerms(token)))];
+      return { $or: aliases.flatMap((a) => searchFieldClauses(a)) };
+    }),
   };
 }
 

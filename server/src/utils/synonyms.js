@@ -38,6 +38,17 @@ export const SYNONYM_GROUPS = [
   ["seerat", "seerah", "sirah", "سیرت", "سيرة"],
   ["namaz", "salah", "salat", "نماز", "صلاة"],
   ["dua", "دعاء", "دعا"],
+  [
+    "parda",
+    "purdah",
+    "pardah",
+    "paradah",
+    "پردہ",
+    "پرده",
+    "الحجاب",
+    "hijab",
+    "hejab",
+  ],
   ["bukhari", "بخاری"],
   ["muslim", "مسلم"],
   [
@@ -334,18 +345,35 @@ export function expandSynonyms(query) {
     const n = normalizeSearch(c);
     if (!n) continue;
 
-    // Exact synonym hit
+    // Exact synonym hit — stop here so "parda" does not fuzzy-match "para" (پارہ)
     const exact = synonymIndex.get(n);
-    if (exact) exact.forEach((t) => terms.add(t));
+    if (exact) {
+      exact.forEach((t) => terms.add(t));
+      continue;
+    }
 
-    // Partial / contains / fuzzy hit (e.g. "مودو" / "qran" → Quran group)
+    const isUrdu = /[\u0600-\u06FF]/.test(n);
+
+    // Partial / fuzzy hit against synonym keys (typos & short prefixes only)
     for (const [key, group] of synonymIndex) {
-      if (key.includes(n) || n.includes(key)) {
+      // Partial: query is inside a longer synonym (مو→مودودی, تف→تفہیم)
+      // Latin only for short prefixes (mau→maududi) — avoids para⊂parda
+      const partialOk = key.includes(n) && n.length >= 2 && (isUrdu || n.length <= 3);
+      if (partialOk) {
         group.forEach((t) => terms.add(t));
         continue;
       }
-      if (n.length >= 3 && key.length >= 3 && Math.abs(n.length - key.length) <= 2) {
-        if (levenshteinLite(n, key) <= (n.length <= 4 ? 1 : 2)) {
+
+      // Typo tolerance — skip prefix pairs (e.g. unequal stems)
+      if (
+        n.length >= 3 &&
+        key.length >= 3 &&
+        Math.abs(n.length - key.length) <= 2 &&
+        !key.startsWith(n) &&
+        !n.startsWith(key)
+      ) {
+        const maxEd = n.length <= 5 ? 1 : 2;
+        if (levenshteinLite(n, key) <= maxEd) {
           group.forEach((t) => terms.add(t));
         }
       }

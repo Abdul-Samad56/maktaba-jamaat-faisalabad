@@ -69,6 +69,48 @@ function fieldClauses(term) {
   ];
 }
 
+/** True if two token expansions share any synonym (same concept). */
+function expansionsOverlap(a, b) {
+  const setA = new Set(a);
+  return b.some((t) => setA.has(t));
+}
+
+/**
+ * Group query tokens that mean the same thing (e.g. "Parda" + "پردہ").
+ * Different concepts stay in separate clusters and are AND-ed.
+ */
+function clusterSynonymTokens(tokens) {
+  const clusters = [];
+  const used = new Set();
+
+  for (let i = 0; i < tokens.length; i++) {
+    if (used.has(i)) continue;
+    const cluster = [tokens[i]];
+    let clusterExp = new Set(expandSynonyms(tokens[i]));
+    used.add(i);
+
+    for (let j = i + 1; j < tokens.length; j++) {
+      if (used.has(j)) continue;
+      const expJ = expandSynonyms(tokens[j]);
+      if (expansionsOverlap([...clusterExp], expJ)) {
+        cluster.push(tokens[j]);
+        expJ.forEach((t) => clusterExp.add(t));
+        used.add(j);
+      }
+    }
+    clusters.push(cluster);
+  }
+  return clusters;
+}
+
+/** Latin + Urdu in one query usually means one bilingual title, not two filters. */
+function isMixedScriptBilingualQuery(tokens) {
+  if (tokens.length < 2) return false;
+  const hasLatin = tokens.some((t) => /[a-z0-9]/i.test(t));
+  const hasUrdu = tokens.some((t) => /[\u0600-\u06FF]/.test(t));
+  return hasLatin && hasUrdu;
+}
+
 /**
  * Fallback Mongo filter from query (synonyms + partial).
  * Exported so products route can reuse when not using full service ranking.
@@ -79,16 +121,38 @@ export function buildSmartSearchFilter(search) {
 
   const primaryTokens = tokenizeQuery(search).filter((t) => t.length >= 2);
 
-  if (primaryTokens.length >= 2) {
-    return {
-      $and: primaryTokens.map((token) => {
-        const aliases = expandSynonyms(token);
-        return { $or: aliases.flatMap((a) => fieldClauses(a)) };
-      }),
-    };
+  // Single token / short query: match any expanded alias
+  if (primaryTokens.length < 2) {
+    return { $or: terms.flatMap((a) => fieldClauses(a)) };
   }
 
-  return { $or: terms.flatMap((a) => fieldClauses(a)) };
+  // "Parda پردہ" / "Quran قرآن" — bilingual same-concept → OR, not AND
+  if (isMixedScriptBilingualQuery(primaryTokens)) {
+    const clusters = clusterSynonymTokens(primaryTokens);
+    // If every Latin/Urdu pair collapsed into one concept cluster, OR is enough
+    if (clusters.length === 1) {
+      const aliases = [
+        ...new Set(clusters[0].flatMap((token) => expandSynonyms(token))),
+      ];
+      return { $or: aliases.flatMap((a) => fieldClauses(a)) };
+    }
+  }
+
+  // Multi-concept queries: AND across synonym clusters, OR within each cluster
+  const clusters = clusterSynonymTokens(primaryTokens);
+  if (clusters.length === 1) {
+    const aliases = [
+      ...new Set(clusters[0].flatMap((token) => expandSynonyms(token))),
+    ];
+    return { $or: aliases.flatMap((a) => fieldClauses(a)) };
+  }
+
+  return {
+    $and: clusters.map((cluster) => {
+      const aliases = [...new Set(cluster.flatMap((token) => expandSynonyms(token)))];
+      return { $or: aliases.flatMap((a) => fieldClauses(a)) };
+    }),
+  };
 }
 
 /**
