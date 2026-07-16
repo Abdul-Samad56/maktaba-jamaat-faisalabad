@@ -7,6 +7,7 @@
     "dev": "node --watch src/index.js",
     "seed": "node src/seed/importData.js",
     "seed:dry": "node src/seed/dryRun.js",
+    "seed:keywords": "node src/seed/backfillKeywords.js",
     "fix:stock-discount": "node src/seed/fixStockAndDiscount.js"
   },
   "dependencies": {

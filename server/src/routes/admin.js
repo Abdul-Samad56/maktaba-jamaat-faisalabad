@@ -19,12 +19,17 @@ function productPayload(body) {
   const price = Number(body.price) || 0;
   const regularPrice = Number(body.regularPrice) || price;
   const tags = parseTags(body.tags);
+  const keywords = parseTags(body.keywords);
   const bilingual = applyBilingualFields({
     title: String(body.title || body.titleEn || body.titleUr || "").trim(),
     titleEn: String(body.titleEn || "").trim(),
     titleUr: String(body.titleUr || "").trim(),
     author: String(body.author || "").trim(),
     tags,
+    keywords,
+    publisher: String(body.publisher || "").trim(),
+    source: String(body.source || "").trim(),
+    category: String(body.category || "General").trim(),
   });
 
   return {
@@ -50,6 +55,7 @@ function productPayload(body) {
     localImage: String(body.localImage || "").trim(),
     productLink: String(body.productLink || "").trim(),
     tags,
+    keywords,
   };
 }
 

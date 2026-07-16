@@ -93,6 +93,55 @@ export async function fetchProduct(id) {
   return data;
 }
 
+/** Autocomplete suggestions while typing. */
+export async function fetchSearchSuggestions(q, limit = 8, signal) {
+  const qs = new URLSearchParams({ q: q || "", limit: String(limit) });
+  const res = await fetch(`${API_BASE}/search/suggest?${qs}`, {
+    signal,
+    headers: { Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error(`Suggest failed (${res.status})`);
+  return parseJsonResponse(res);
+}
+
+/** Popular search terms. */
+export async function fetchPopularSearches(limit = 8) {
+  try {
+    return await fetchFresh(
+      `${API_BASE}/search/popular?limit=${limit}`,
+      `search-popular:${limit}`,
+      5 * 60 * 1000,
+      [5000, 12000]
+    );
+  } catch {
+    return { items: ["قرآن", "تفسیر", "حدیث", "مولانا مودودی", "سیرت"] };
+  }
+}
+
+/** Record a committed search (analytics). */
+export async function trackSearch(query) {
+  const q = String(query || "").trim();
+  if (!q) return;
+  try {
+    await fetch(`${API_BASE}/search/track`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ query: q }),
+    });
+  } catch {
+    /* non-critical */
+  }
+}
+
+/** Dedicated intelligent search endpoint (optional; HomePage still uses /products). */
+export async function fetchSearch(params = {}) {
+  const qs = new URLSearchParams();
+  Object.entries(params).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== "") qs.set(k, v);
+  });
+  return fetchFresh(`${API_BASE}/search?${qs}`, `search:${qs}`, PRODUCTS_TTL);
+}
+
 /** Warm product cache on hover for instant product page. */
 export function prefetchProduct(id) {
   if (!id || peekProduct(id)) return;

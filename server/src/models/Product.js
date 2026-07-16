@@ -26,11 +26,14 @@ const productSchema = new mongoose.Schema(
     /** SEO URL slug — unique public path /product/{slug} */
     slug: { type: String, index: true, unique: true, sparse: true },
     tags: [{ type: String }],
+    /** Extra search keywords (Urdu + English aliases, typos, topics). */
+    keywords: [{ type: String }],
   },
   { timestamps: true }
 );
 
-productSchema.index({ title: "text", titleEn: "text", titleUr: "text", author: "text" });
+productSchema.index({ title: "text", titleEn: "text", titleUr: "text", author: "text", keywords: "text" });
 productSchema.index({ searchIndex: 1 });
+productSchema.index({ keywords: 1 });
 
 export default mongoose.model("Product", productSchema);

@@ -1,3 +1,6 @@
+import { normalizeSearch as normalizeSearchCore } from "./normalize.js";
+import { expandSynonyms } from "./synonyms.js";
+
 /** Urdu/Arabic letter range */
 const URDU_RE = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
 const LATIN_RE = /[A-Za-z]/;
@@ -12,20 +15,7 @@ export function hasLatin(text) {
 
 /** Normalize for reliable Urdu + English search matching. */
 export function normalizeSearch(text) {
-  return String(text || "")
-    .normalize("NFKC")
-    .replace(/[\u064B-\u065F\u0670\u0640]/g, "")
-    .replace(/[يى]/g, "ی")
-    .replace(/ك/g, "ک")
-    .replace(/ةهۀھ/g, "ہ")
-    .replace(/[أإآٱ]/g, "ا")
-    .replace(/ؤ/g, "و")
-    .replace(/ئ/g, "ی")
-    .replace(/ؓ|ؐ|ؑ|ؒ/g, "")
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]+/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return normalizeSearchCore(text);
 }
 
 /**
@@ -66,8 +56,10 @@ export function buildSearchIndex({
   titleUr,
   author,
   tags,
+  keywords,
   publisher,
   source,
+  category,
 } = {}) {
   const bits = [
     title,
@@ -76,7 +68,9 @@ export function buildSearchIndex({
     author,
     publisher,
     source,
+    category,
     ...(Array.isArray(tags) ? tags : []),
+    ...(Array.isArray(keywords) ? keywords : []),
   ]
     .filter(Boolean)
     .join(" ");
@@ -101,301 +95,7 @@ export function displayTitleEn(product) {
   return product.titleEn || (hasLatin(product.title) && !hasUrdu(product.title) ? product.title : "") || "";
 }
 
-/** Common Islamic-book aliases so Urdu ↔ English search both work. */
-const SEARCH_ALIASES = [
-  ["quran", "quraan", "koran", "قرآن", "القرآن", "قرآن", "mushaf", "مصحف"],
-  ["para", "sipara", "siparah", "juz", "پارہ", "سیپارہ", "جزو"],
-  ["tarjuma", "tarjama", "translation", "ترجمہ", "ترجمه", "tarjuma quran"],
-  ["tafseer", "tafsir", "تفسیر", "تفسير"],
-  ["hadith", "hadees", "ahadees", "حدیث", "احادیث", "حديث"],
-  ["fiqh", "fiqa", "فقہ", "فقه", "masail", "مسائل"],
-  ["tarikh", "tareekh", "history", "تاریخ", "تاريخ"],
-  ["seerat", "seerah", "sirah", "سیرت", "سيرة"],
-  ["namaz", "salah", "salat", "نماز", "صلاة"],
-  ["dua", "دعاء", "دعا"],
-  ["bukhari", "بخاری"],
-  ["muslim", "مسلم"],
-  [
-    "maktaba jamaat e islami faisalabad",
-    "maktaba jamaat e islami",
-    "maktaba jamaat-e-islami",
-    "maktaba ji faisalabad",
-    "maktaba ji fsd",
-    "مکتبہ جماعت اسلامی فیصل آباد",
-    "مکتبہ جماعت اسلامی",
-    "مکتبہ جماعتِ اسلامی فیصل آباد",
-  ],
-  [
-    "mushtaq ahmad khan",
-    "mushtaq ahmed khan",
-    "senator mushtaq ahmad khan",
-    "senator mushtaq ahmed khan",
-    "senotor mushtaq ahmad khan",
-    "senotor mushtaq ahmed khan",
-    "mushtak ahmad khan",
-    "mushtaq ahmad",
-    "سینیٹر مشتاق احمد خان",
-    "مشتاق احمد خان",
-    "سینیٹر مشتاق احمد",
-  ],
-  [
-    "munawar hassan",
-    "munawwar hassan",
-    "munar hassan",
-    "munawar hasan",
-    "munawwar hasan",
-    "syed munawar hassan",
-    "syed munawwar hassan",
-    "منور حسن",
-    "سید منور حسن",
-  ],
-  [
-    "mian muhammad tufail",
-    "mian mohammad tufail",
-    "miyan muhammad tufail",
-    "mian muhammad fufail",
-    "mian mohammad fufail",
-    "mian tufail",
-    "میاں محمد طفیل",
-    "میاں محمّد طفیل",
-  ],
-  [
-    "qazi hussain ahmad",
-    "qazi hussain ahmed",
-    "qazi husain ahmad",
-    "qazi hussein ahmad",
-    "qaazi hussain ahmad",
-    "قاضی حسین احمد",
-  ],
-  [
-    "siraj ul haq",
-    "sirajul haq",
-    "siraj-ul-haq",
-    "siraj ul haque",
-    "siraj-ul-haque",
-    "سراج الحق",
-    "سینیٹر سراج الحق",
-  ],
-  [
-    "hafiz naeem",
-    "hafez naeem",
-    "hafiz naeem ur rehman",
-    "hafiz naeem ur rahman",
-    "hafiz naeem rehman",
-    "حافظ نعیم",
-    "حافظ نعیم الرحمٰن",
-    "حافظ نعیم الرحمن",
-    "حافظ نعیم الرحمان",
-  ],
-  [
-    "maududi",
-    "maudoodi",
-    "mawdudi",
-    "modudi",
-    "maododi",
-    "moududi",
-    "maulana maududi",
-    "molana maududi",
-    "molana maododi",
-    "abul ala maududi",
-    "مودودی",
-    "مولانا مودودی",
-    "سید ابو الاعلی مودودی",
-  ],
-  [
-    "mansoora lahore",
-    "mansoorah lahore",
-    "mansura lahore",
-    "mansoorah",
-    "mansoora",
-    "mansura",
-    "منصورہ لاہور",
-    "منصورہ",
-  ],
-  [
-    "faisalabad",
-    "fsd",
-    "فیصل آباد",
-    "فیصل اباد",
-    "lyallpur",
-    "لائل پور",
-    "chiniot bazaar",
-    "چنیوٹ بازار",
-    "islamic books faisalabad",
-    "اسلامی کتب فیصل آباد",
-    "madina town",
-    "مدینہ ٹاؤن",
-    "people's colony",
-    "peoples colony",
-    "پیپلز کالونی",
-    "gulberg",
-    "گلبرگ",
-    "d ground",
-    "ڈی گراؤنڈ",
-    "susan road",
-    "سوسن روڈ",
-    "ghulam muhammad abad",
-    "g.m. abad",
-    "غلام محمد آباد",
-    "kohinoor city",
-    "کوہ نور سٹی",
-    "jaranwala road",
-    "جڑانوالہ روڈ",
-    "sargodha road",
-    "سرگودھا روڈ",
-    "canal road",
-    "کینال روڈ",
-    "mansoorabad",
-    "منصورآباد",
-    "millat town",
-    "ملت ٹاؤن",
-    "batala colony",
-    "بٹالہ کالونی",
-    "clock tower",
-    "گھنٹہ گھر",
-  ],
-  [
-    "islam",
-    "islami",
-    "islamic",
-    "islamiat",
-    "islamiyat",
-    "اسلام",
-    "اسلامی",
-    "اسلامیات",
-  ],
-  [
-    "islamic books",
-    "islamic book",
-    "islamic books online",
-    "buy islamic books",
-    "اسلامی کتب",
-    "اسلامی کتاب",
-    "اسلامی کتب آن لائن",
-    "آن لائن اسلامی کتب",
-  ],
-  [
-    "ameer jamaat e islami",
-    "ameer jamaat-e-islami",
-    "amir jamaat e islami",
-    "ameer of jamaat e islami",
-    "ameer ji",
-    "amir ji",
-    "امیر جماعت اسلامی",
-    "امیرِ جماعت اسلامی",
-    "امیر جماعتِ اسلامی",
-  ],
-  [
-    "al khidmat foundation",
-    "al-khidmat foundation",
-    "alkhidmat foundation",
-    "al khidmat foudation",
-    "al khidmat foundaton",
-    "khidmat foundation",
-    "al khidmat",
-    "alkhidmat",
-    "الخدمت فاؤنڈیشن",
-    "ال خدمت فاؤنڈیشن",
-    "الخدمت فاونڈیشن",
-    "الخدمت",
-  ],
-  [
-    "bano qabil",
-    "bano-e-qabil",
-    "bano e qabil",
-    "banoqabil",
-    "bano qaabil",
-    "bano kabil",
-    "banu qabil",
-    "بنو قابل",
-    "بنوِ قابل",
-  ],
-  [
-    "tarjuman ul quran",
-    "tarjumaan ul quran",
-    "tarjuman-ul-quran",
-    "tarjaman ul quran",
-    "tarjumanul quran",
-    "idara tarjuman ul quran",
-    "idara tarjumaan ul quran",
-    "ترجمان القرآن",
-    "ادارہ ترجمان القرآن",
-    "رسالہ ترجمان القرآن",
-  ],
-  ["tafheem", "tafhim", "tafheem ul quran", "tafheem-ul-quran", "tafhim ul quran", "تفہیم", "تفهيم", "تفہیم القرآن", "تفهيم القرآن"],
-  [
-    "jamaat e islami faisalabad",
-    "jamaat-e-islami faisalabad",
-    "jamaate islami faisalabad",
-    "ji faisalabad",
-    "ji fsd",
-    "jamaat e islami fsd",
-    "جماعت اسلامی فیصل آباد",
-    "جماعتِ اسلامی فیصل آباد",
-    "دفتر جماعت اسلامی فیصل آباد",
-  ],
-  [
-    "jamaat e islami",
-    "jamaat-e-islami",
-    "jamaate islami",
-    "maktaba jamaat e islami",
-    "جماعت اسلامی",
-    "جماعتِ اسلامی",
-    "مکتبہ جماعت اسلامی",
-  ],
-  [
-    "maktaba islamia",
-    "maktabah islamia",
-    "maktaba-e-islamia",
-    "maktaba e islamia",
-    "مکتبہ اسلامیہ",
-    "مکتبه اسلامیه",
-  ],
-  [
-    "tariq jameel",
-    "tariq jamil",
-    "molana tariq jameel",
-    "maulana tariq jameel",
-    "طارق جمیل",
-    "مولانا طارق جمیل",
-  ],
-  [
-    "taqi usmani",
-    "mufti taqi usmani",
-    "taqi usmani books",
-    "مفتی تقی عثمانی",
-    "تقی عثمانی",
-  ],
-  [
-    "israr ahmad",
-    "dr israr ahmad",
-    "doctor israr ahmad",
-    "ڈاکٹر اسرار احمد",
-    "اسرار احمد",
-  ],
-  [
-    "tariq masood",
-    "mufti tariq masood",
-    "مفتی طارق مسعود",
-    "طارق مسعود",
-  ],
-  [
-    "zakir naik",
-    "dr zakir naik",
-    "dr. zakir naik",
-    "doctor zakir naik",
-    "ڈاکٹر ذاکر نائیک",
-    "ذاکر نائیک",
-  ],
-  [
-    "makkah madina",
-    "makkah madinah",
-    "mecca medina",
-    "مکہ مدینہ",
-    "مکہ مکرمہ",
-    "مدینہ منورہ",
-  ],
-];
+/** Synonym dictionary lives in synonyms.js — expandSearchTerms re-exports it. */
 
 function searchFieldClauses(term) {
   const a = escapeRegex(term);
@@ -407,33 +107,14 @@ function searchFieldClauses(term) {
     { author: { $regex: a, $options: "i" } },
     { publisher: { $regex: a, $options: "i" } },
     { source: { $regex: a, $options: "i" } },
+    { category: { $regex: a, $options: "i" } },
+    { keywords: { $regex: a, $options: "i" } },
+    { tags: { $regex: a, $options: "i" } },
   ];
 }
 
 export function expandSearchTerms(query) {
-  const raw = String(query || "").trim();
-  if (!raw) return [];
-
-  const normalized = normalizeSearch(raw);
-  const tokens = normalized.split(/\s+/).filter(Boolean);
-  const terms = new Set();
-
-  // Full phrase
-  terms.add(normalized);
-  // Individual tokens
-  tokens.forEach((t) => terms.add(t));
-
-  // Alias expansion (phrase + tokens)
-  const candidates = [normalized, raw, ...tokens];
-  for (const c of candidates) {
-    const n = normalizeSearch(c);
-    for (const group of SEARCH_ALIASES) {
-      const hit = group.some((a) => normalizeSearch(a) === n || n.includes(normalizeSearch(a)));
-      if (hit) group.forEach((a) => terms.add(normalizeSearch(a)));
-    }
-  }
-
-  return [...terms].filter((t) => t.length >= 1);
+  return expandSynonyms(query);
 }
 
 /**
@@ -480,14 +161,17 @@ export function applyBilingualFields(doc) {
 
   // Keep legacy title filled for older clients / SEO
   const primary = titleEn || titleUr || title;
+  const keywords = Array.isArray(doc.keywords) ? doc.keywords : [];
   const searchIndex = buildSearchIndex({
     title: primary,
     titleEn,
     titleUr,
     author: doc.author,
     tags: doc.tags,
+    keywords,
     publisher: doc.publisher,
     source: doc.source,
+    category: doc.category,
   });
 
   return {
@@ -495,6 +179,7 @@ export function applyBilingualFields(doc) {
     title: primary,
     titleEn,
     titleUr,
+    keywords,
     searchIndex,
   };
 }

@@ -1,0 +1,56 @@
+{
+  "mappings": {
+    "dynamic": false,
+    "fields": {
+      "title": [
+        { "type": "string", "analyzer": "lucene.standard" },
+        {
+          "type": "autocomplete",
+          "tokenization": "edgeGram",
+          "minGrams": 2,
+          "maxGrams": 15,
+          "foldDiacritics": true
+        }
+      ],
+      "titleEn": [
+        { "type": "string", "analyzer": "lucene.standard" },
+        {
+          "type": "autocomplete",
+          "tokenization": "edgeGram",
+          "minGrams": 2,
+          "maxGrams": 15,
+          "foldDiacritics": true
+        }
+      ],
+      "titleUr": [
+        { "type": "string", "analyzer": "lucene.standard" },
+        {
+          "type": "autocomplete",
+          "tokenization": "edgeGram",
+          "minGrams": 2,
+          "maxGrams": 15,
+          "foldDiacritics": true
+        }
+      ],
+      "author": [
+        { "type": "string", "analyzer": "lucene.standard" },
+        {
+          "type": "autocomplete",
+          "tokenization": "edgeGram",
+          "minGrams": 2,
+          "maxGrams": 15,
+          "foldDiacritics": true
+        }
+      ],
+      "publisher": { "type": "string", "analyzer": "lucene.standard" },
+      "source": { "type": "string", "analyzer": "lucene.standard" },
+      "category": { "type": "string", "analyzer": "lucene.standard" },
+      "keywords": { "type": "string", "analyzer": "lucene.standard" },
+      "tags": { "type": "string", "analyzer": "lucene.standard" },
+      "searchIndex": { "type": "string", "analyzer": "lucene.standard" },
+      "available": { "type": "boolean" },
+      "onSale": { "type": "boolean" },
+      "price": { "type": "number" }
+    }
+  }
+}

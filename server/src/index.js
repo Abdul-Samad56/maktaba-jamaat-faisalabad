@@ -8,6 +8,7 @@ import zlib from "zlib";
 import { fileURLToPath } from "url";
 import productsRouter from "./routes/products.js";
 import adminRouter from "./routes/admin.js";
+import searchRouter from "./routes/search.js";
 import { connectDb } from "./db.js";
 
 dotenv.config();
@@ -74,7 +75,7 @@ app.use(gzipMiddleware);
 app.use(express.json());
 
 app.use((req, res, next) => {
-  if (req.path.startsWith("/api/products")) {
+  if (req.path.startsWith("/api/products") || req.path.startsWith("/api/search")) {
     res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
   } else if (req.path.startsWith("/api/admin")) {
     res.setHeader("Cache-Control", "no-store");
@@ -83,6 +84,7 @@ app.use((req, res, next) => {
 });
 
 app.use("/api/products", productsRouter);
+app.use("/api/search", searchRouter);
 app.use("/api/admin", adminRouter);
 
 const PUBLIC_SITE_URL = (

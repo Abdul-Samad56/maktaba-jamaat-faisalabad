@@ -1,6 +1,7 @@
 import { Router } from "express";
 import Product from "../models/Product.js";
 import { buildBilingualSearchQuery } from "../utils/bilingual.js";
+import { searchProducts, buildSmartSearchFilter } from "../services/searchService.js";
 
 const router = Router();
 
@@ -59,7 +60,8 @@ function buildCategoryQuery(category) {
 }
 
 function buildSearchQuery(search) {
-  return buildBilingualSearchQuery(search);
+  // Prefer smart filter (keywords + synonyms); fall back to legacy bilingual query
+  return buildSmartSearchFilter(search) || buildBilingualSearchQuery(search);
 }
 
 function mergeFilters(base, extra) {
@@ -144,6 +146,7 @@ router.get("/", async (req, res) => {
 
     const sortMap = {
       featured: null, // custom priority sort below
+      relevance: null,
       "price-asc": { price: 1 },
       "price-desc": { price: -1 },
       "title-asc": { title: 1 },
@@ -155,6 +158,37 @@ router.get("/", async (req, res) => {
     const pageSize = Math.min(100, Math.max(1, Number(limit)));
     const skip = (pageNum - 1) * pageSize;
     const useFeatured = !sort || sort === "featured" || !sortMap[sort];
+    const hasSearch = Boolean(String(search || "").trim());
+
+    // Intelligent ranked search when user typed a query
+    if (hasSearch && (useFeatured || sort === "relevance")) {
+      const result = await searchProducts(String(search).trim(), {
+        page: pageNum,
+        limit: pageSize,
+        sort: "relevance",
+        extraFilter: mergeFilters(filter, buildCategoryQuery(category)),
+      });
+      const payload = {
+        items: result.items,
+        total: result.total,
+        page: result.page,
+        pages: result.pages,
+        limit: result.limit,
+        highlightTerms: result.highlightTerms || [],
+        engine: result.engine,
+      };
+      if (!result.items.length) {
+        try {
+          const { getNoResultSuggestions } = await import("../services/searchService.js");
+          payload.empty = await getNoResultSuggestions(String(search).trim());
+        } catch {
+          /* optional */
+        }
+      }
+      setCached(listCache, cacheKey, payload);
+      res.setHeader("X-Cache", "MISS");
+      return res.json(payload);
+    }
 
     let items;
     const total = await Product.countDocuments(mongoFilter).maxTimeMS(8000);

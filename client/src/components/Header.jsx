@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { SITE_PHONE_DISPLAY } from "../siteConfig";
 import { WHATSAPP_URL } from "./WhatsAppFloat";
+import SearchBar from "./SearchBar";
 
 const CATEGORIES = [
   { id: "all", label: "All Books" },
@@ -65,10 +66,9 @@ function TickerMessage({ hidden = false }) {
 }
 
 export default function Header() {
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
   const category = params.get("category") || "all";
-  const search = params.get("search") || "";
 
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "";
@@ -76,18 +76,6 @@ export default function Header() {
       document.body.style.overflow = "";
     };
   }, [menuOpen]);
-
-  const onSearch = (e) => {
-    e.preventDefault();
-    const q = e.target.search.value.trim();
-    const next = new URLSearchParams(params);
-    if (q) next.set("search", q);
-    else next.delete("search");
-    next.delete("page");
-    setParams(next);
-    setMenuOpen(false);
-    scrollToProducts();
-  };
 
   const onCategoryClick = () => {
     setMenuOpen(false);
@@ -137,10 +125,7 @@ export default function Header() {
           ))}
         </nav>
 
-        <form className="search-box" onSubmit={onSearch}>
-          <input name="search" type="search" placeholder="Search اردو / English..." defaultValue={search} />
-          <button type="submit">Search</button>
-        </form>
+        <SearchBar onMenuClose={() => setMenuOpen(false)} />
       </div>
     </header>
   );

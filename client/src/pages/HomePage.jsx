@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { fetchFilters, fetchProducts, peekFilters, peekProducts, wakeApi } from "../api";
+import NoResults from "../components/NoResults";
 import Pagination from "../components/Pagination";
 import ProductCard from "../components/ProductCard";
 import Seo from "../components/Seo";
@@ -806,6 +807,22 @@ export default function HomePage() {
 
   const showGrid = !error && data?.items?.length > 0;
   const showEmpty = !loading && !error && data?.items?.length === 0;
+  const highlightTerms = data?.highlightTerms?.length
+    ? data.highlightTerms
+    : search
+      ? [search]
+      : [];
+
+  const applySearchQuery = useCallback(
+    (q) => {
+      const next = new URLSearchParams(params);
+      if (q) next.set("search", q);
+      else next.delete("search");
+      next.delete("page");
+      setParams(next);
+    },
+    [params, setParams]
+  );
   const showSkeleton = loading && !data?.items?.length;
 
   const categoryLabel = CATEGORY_LABELS[category] || category;
@@ -888,6 +905,7 @@ export default function HomePage() {
                     Sort:{" "}
                     <select value={sort} onChange={setSort}>
                       <option value="featured">Featured</option>
+                      <option value="relevance">Relevance</option>
                       <option value="title-asc">A-Z</option>
                       <option value="title-desc">Z-A</option>
                       <option value="price-asc">Price ↑</option>
@@ -914,13 +932,27 @@ export default function HomePage() {
             </div>
           )}
 
-          {showEmpty && <p className="empty">No products found. Try changing filters.</p>}
+          {showEmpty && search && (
+            <NoResults
+              query={search}
+              empty={data?.empty}
+              onSearch={applySearchQuery}
+              highlightTerms={highlightTerms}
+            />
+          )}
+
+          {showEmpty && !search && <p className="empty">No products found. Try changing filters.</p>}
 
           {showGrid && (
             <>
               <div className={`product-grid ${loading ? "loading-blur" : ""}`}>
                 {data.items.map((p, i) => (
-                  <ProductCard key={p._id} product={p} priority={i < 4} />
+                  <ProductCard
+                    key={p._id}
+                    product={p}
+                    priority={i < 4}
+                    highlightTerms={highlightTerms}
+                  />
                 ))}
               </div>
               <Pagination page={data.page} pages={data.pages} onChange={setPage} />

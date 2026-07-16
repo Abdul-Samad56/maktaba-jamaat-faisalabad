@@ -3,8 +3,9 @@ import { WHATSAPP_NUMBER } from "./WhatsAppFloat";
 import { formatPrice, imageUrl, prefetchProduct } from "../api";
 import { fullTitle, primaryTitle, titleEn, titleUr } from "../bilingual";
 import { productPath } from "../productUrl";
+import SearchHighlight from "./SearchHighlight";
 
-export default function ProductCard({ product, priority = false }) {
+export default function ProductCard({ product, priority = false, highlightTerms = [] }) {
   const discount =
     product.onSale && product.regularPrice > product.price
       ? Math.round(((product.regularPrice - product.price) / product.regularPrice) * 100)
@@ -14,6 +15,7 @@ export default function ProductCard({ product, priority = false }) {
   const en = titleEn(product);
   const ur = titleUr(product);
   const href = productPath(product);
+  const terms = highlightTerms?.length ? highlightTerms : [];
 
   const orderUrl = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
     `السلام علیکم! میں "${name}" کتاب آرڈر کرنا چاہتا/چاہتی ہوں۔`
@@ -41,18 +43,32 @@ export default function ProductCard({ product, priority = false }) {
         <Link to={href} onFocus={warm} className="product-title-link">
           {en && ur && en !== ur ? (
             <>
-              <h3 className="product-title">{en}</h3>
+              <h3 className="product-title">
+                {terms.length ? <SearchHighlight text={en} terms={terms} /> : en}
+              </h3>
               <p className="product-title-ur" lang="ur" dir="rtl">
-                {ur}
+                {terms.length ? <SearchHighlight text={ur} terms={terms} /> : ur}
               </p>
             </>
           ) : (
-            <h3 className={`product-title${ur && !en ? " product-title-ur-only" : ""}`} lang={ur && !en ? "ur" : undefined} dir={ur && !en ? "rtl" : undefined}>
-              {primaryTitle(product)}
+            <h3
+              className={`product-title${ur && !en ? " product-title-ur-only" : ""}`}
+              lang={ur && !en ? "ur" : undefined}
+              dir={ur && !en ? "rtl" : undefined}
+            >
+              {terms.length ? (
+                <SearchHighlight text={primaryTitle(product)} terms={terms} />
+              ) : (
+                primaryTitle(product)
+              )}
             </h3>
           )}
         </Link>
-        {product.author && <p className="product-author">{product.author}</p>}
+        {product.author && (
+          <p className="product-author">
+            {terms.length ? <SearchHighlight text={product.author} terms={terms} /> : product.author}
+          </p>
+        )}
         <div className="product-price">
           <span className="price-current">{formatPrice(product.price)}</span>
           {product.onSale && product.regularPrice > product.price && (
