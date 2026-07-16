@@ -189,15 +189,40 @@ function mergeFilters(base, extra) {
 
 /**
  * Rank and paginate an array of products by relevance.
+ * Exact query matches first, then near/synonym matches.
  */
 function rankAndPaginate(items, query, { skip, limit }) {
   const expanded = expandSynonyms(query);
-  const scored = items
-    .map((p) => ({ ...p, _relevance: scoreRelevance(p, query, expanded) }))
-    .filter((p) => p._relevance > 0 || isFuzzyMatch(query, [p.title, p.titleEn, p.titleUr, p.author, ...(p.keywords || [])].join(" ")))
-    .sort((a, b) => b._relevance - a._relevance || String(a.title).localeCompare(String(b.title)));
+  const qNorm = normalizeSearch(query);
 
-  // If filter was too loose and everything scored 0, still return fuzzy matches
+  const scored = items
+    .map((p) => {
+      const relevance = scoreRelevance(p, query, expanded);
+      const titleNorm = normalizeSearch(p.title || p.titleEn || p.titleUr || "");
+      return {
+        ...p,
+        _relevance: relevance,
+        _exact: titleNorm === qNorm || normalizeSearch(p.titleUr || "") === qNorm || normalizeSearch(p.titleEn || "") === qNorm,
+        _titleLen: titleNorm.length,
+      };
+    })
+    .filter(
+      (p) =>
+        p._relevance > 0 ||
+        isFuzzyMatch(
+          query,
+          [p.title, p.titleEn, p.titleUr, p.author, ...(p.keywords || [])].join(" ")
+        )
+    )
+    .sort((a, b) => {
+      // Exact title === query always first
+      if (a._exact !== b._exact) return a._exact ? -1 : 1;
+      if (b._relevance !== a._relevance) return b._relevance - a._relevance;
+      // Prefer shorter titles among equal scores (closer to the search word)
+      if (a._titleLen !== b._titleLen) return a._titleLen - b._titleLen;
+      return String(a.title || "").localeCompare(String(b.title || ""));
+    });
+
   const ranked =
     scored.length > 0
       ? scored
@@ -205,12 +230,14 @@ function rankAndPaginate(items, query, { skip, limit }) {
           .map((p) => ({
             ...p,
             _relevance: scoreRelevance(p, query, expanded) || (isFuzzyMatch(query, p.title) ? 50 : 0),
+            _exact: false,
+            _titleLen: String(p.title || "").length,
           }))
           .filter((p) => p._relevance > 0)
-          .sort((a, b) => b._relevance - a._relevance);
+          .sort((a, b) => b._relevance - a._relevance || a._titleLen - b._titleLen);
 
   const total = ranked.length;
-  const pageItems = ranked.slice(skip, skip + limit).map(({ _relevance, ...rest }) => ({
+  const pageItems = ranked.slice(skip, skip + limit).map(({ _relevance, _exact, _titleLen, ...rest }) => ({
     ...rest,
     relevance: _relevance,
   }));

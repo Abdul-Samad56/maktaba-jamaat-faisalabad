@@ -107,15 +107,25 @@ export function softRegexPattern(term) {
 
 /**
  * Relevance score for ranking (higher = better).
- * Priority: exact title → title starts with → author → keywords → publisher → category.
+ *
+ * Order users expect:
+ *  1. Exact title / exact word = search query
+ *  2. Title starts with / contains the query
+ *  3. Synonym exact / near title matches
+ *  4. Fuzzy-similar titles
+ *  5. Author → keywords → publisher → category
  */
 export function scoreRelevance(product, query, expandedTerms = []) {
   const q = normalizeSearch(query);
   if (!q) return 0;
 
-  const title = normalizeSearch(
-    [product.title, product.titleEn, product.titleUr].filter(Boolean).join(" ")
-  );
+  const titlePrimary = normalizeSearch(product.title || "");
+  const titleEn = normalizeSearch(product.titleEn || "");
+  const titleUr = normalizeSearch(product.titleUr || "");
+  const titles = [...new Set([titlePrimary, titleEn, titleUr].filter(Boolean))];
+  const titleBlob = titles.join(" ");
+  const titleTokens = titleBlob.split(/\s+/).filter(Boolean);
+
   const author = normalizeSearch(product.author);
   const publisher = normalizeSearch(product.publisher || product.source);
   const category = normalizeSearch(product.category);
@@ -123,41 +133,73 @@ export function scoreRelevance(product, query, expandedTerms = []) {
     [...(product.keywords || []), ...(product.tags || [])].join(" ")
   );
 
-  let score = 0;
-  const terms = expandedTerms.length ? expandedTerms : [q];
+  const synonyms = (expandedTerms || []).map(normalizeSearch).filter((t) => t && t !== q);
 
-  for (const term of terms) {
-    if (!term) continue;
+  // Shorter titles that match are usually the intended book
+  const shortness = Math.max(0, 120 - titleBlob.length);
 
-    // 1. Exact title match
-    if (title === term) score = Math.max(score, 1000);
-    // 2. Title starts with
-    else if (title.startsWith(term)) score = Math.max(score, 800);
-    else if (title.includes(term)) score = Math.max(score, 600);
+  // ——— 1. Exact match to the typed query ———
+  if (titles.some((t) => t === q)) return 10000 + shortness;
+  if (titleTokens.includes(q)) return 9500 + shortness;
 
-    // 3. Author
-    if (author === term) score = Math.max(score, 500);
-    else if (author.startsWith(term) || author.includes(term)) score = Math.max(score, 450);
+  // Title is exactly "query …" (starts with whole query as first word)
+  if (titles.some((t) => t.startsWith(`${q} `) || t.startsWith(`${q}/`) || t.startsWith(`${q}|`))) {
+    return 9000 + shortness;
+  }
+  if (titles.some((t) => t.startsWith(q))) return 8500 + shortness;
 
-    // 4. Keywords / tags
-    if (keywords.includes(term)) score = Math.max(score, 350);
+  // Query appears as a whole word inside title
+  if (titleBlob.includes(q)) return 7000 + shortness;
 
-    // 5. Publisher
-    if (publisher.includes(term)) score = Math.max(score, 250);
-
-    // 6. Category
-    if (category.includes(term)) score = Math.max(score, 150);
+  // ——— 2. Synonym / near-word exact title matches ———
+  for (const term of synonyms) {
+    if (titles.some((t) => t === term)) return 5500 + shortness;
+  }
+  for (const term of synonyms) {
+    if (titleTokens.includes(term)) return 5000 + shortness;
+  }
+  for (const term of synonyms) {
+    if (
+      titles.some(
+        (t) => t.startsWith(`${term} `) || t.startsWith(`${term}/`) || t.startsWith(term)
+      )
+    ) {
+      return 4500 + shortness;
+    }
+  }
+  for (const term of synonyms) {
+    if (term.length >= 2 && titleBlob.includes(term)) return 3500 + shortness;
   }
 
-  // Fuzzy bump when close but not substring
-  const fuzzyDist = bestFuzzyDistance(q, title);
-  if (fuzzyDist <= 2 && score < 200) {
-    score = Math.max(score, 200 - fuzzyDist * 40);
+  // ——— 3. Fuzzy-similar titles (typos / close spellings) ———
+  const fuzzyDist = bestFuzzyDistance(q, titleBlob);
+  if (fuzzyDist === 0) return 3200 + shortness;
+  if (fuzzyDist <= 1) return 2500 + shortness;
+  if (fuzzyDist <= 2) return 1800 + shortness;
+
+  // Token-level near match
+  let bestTok = 99;
+  for (const tok of titleTokens) {
+    if (Math.abs(tok.length - q.length) > 2) continue;
+    bestTok = Math.min(bestTok, levenshtein(tok, q));
   }
-  const authorDist = bestFuzzyDistance(q, author);
-  if (authorDist <= 2 && score < 180) {
-    score = Math.max(score, 180 - authorDist * 30);
+  if (bestTok <= 1) return 1600 + shortness;
+  if (bestTok <= 2) return 1200 + shortness;
+
+  // ——— 4. Author / keywords / publisher / category ———
+  if (author === q) return 1100;
+  if (author.includes(q) || author.split(/\s+/).includes(q)) return 900;
+  for (const term of synonyms) {
+    if (author.includes(term)) return 750;
   }
 
-  return score;
+  if (keywords.includes(q)) return 650;
+  for (const term of synonyms) {
+    if (term.length >= 3 && keywords.includes(term)) return 500;
+  }
+
+  if (publisher.includes(q)) return 350;
+  if (category.includes(q)) return 250;
+
+  return 0;
 }
