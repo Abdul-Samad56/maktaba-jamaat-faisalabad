@@ -948,7 +948,7 @@ button {
 .product-title {
   font-size: 0.95rem;
   font-weight: 600;
-  margin-bottom: 0.35rem;
+  margin: 0 0 0.35rem;
   line-height: 1.35;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -970,13 +970,19 @@ button {
   line-height: 1.45;
 }
 
+.product-card h1.product-title,
+.product-card h1.product-title-ur {
+  font-size: 0.95rem;
+}
+
 .product-title-ur-only {
   font-family: inherit;
 }
 
-.product-detail-ur {
+.product-detail-info h1.product-detail-ur {
   font-size: 1.25rem;
   margin: 0.35rem 0 1rem;
+  font-weight: 600;
 }
 
 .product-price {

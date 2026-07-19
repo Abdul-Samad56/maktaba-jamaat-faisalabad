@@ -184,9 +184,9 @@ export default function ProductPage() {
           {en && ur && en !== ur ? (
             <>
               <h1>{en}</h1>
-              <p className="product-title-ur product-detail-ur" lang="ur" dir="rtl">
+              <h1 className="product-title-ur product-detail-ur" lang="ur" dir="rtl">
                 {ur}
-              </p>
+              </h1>
             </>
           ) : (
             <h1 lang={ur && !en ? "ur" : undefined} dir={ur && !en ? "rtl" : undefined}>

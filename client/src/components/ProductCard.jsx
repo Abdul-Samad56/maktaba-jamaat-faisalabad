@@ -43,15 +43,15 @@ export default function ProductCard({ product, priority = false, highlightTerms 
         <Link to={href} onFocus={warm} className="product-title-link">
           {en && ur && en !== ur ? (
             <>
-              <h3 className="product-title">
+              <h1 className="product-title">
                 {terms.length ? <SearchHighlight text={en} terms={terms} /> : en}
-              </h3>
-              <p className="product-title-ur" lang="ur" dir="rtl">
+              </h1>
+              <h1 className="product-title-ur" lang="ur" dir="rtl">
                 {terms.length ? <SearchHighlight text={ur} terms={terms} /> : ur}
-              </p>
+              </h1>
             </>
           ) : (
-            <h3
+            <h1
               className={`product-title${ur && !en ? " product-title-ur-only" : ""}`}
               lang={ur && !en ? "ur" : undefined}
               dir={ur && !en ? "rtl" : undefined}
@@ -61,7 +61,7 @@ export default function ProductCard({ product, priority = false, highlightTerms 
               ) : (
                 primaryTitle(product)
               )}
-            </h3>
+            </h1>
           )}
         </Link>
         {product.author && (
