@@ -975,6 +975,34 @@ button {
   font-size: 0.95rem;
 }
 
+.product-author {
+  margin: 0.15rem 0 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.product-card h1.product-author {
+  font-size: 0.85rem;
+}
+
+.product-author-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin-bottom: 0.35rem;
+}
+
+.product-detail-info h1.product-author {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  display: inline;
+}
+
 .product-title-ur-only {
   font-family: inherit;
 }

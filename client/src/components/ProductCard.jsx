@@ -65,9 +65,9 @@ export default function ProductCard({ product, priority = false, highlightTerms 
           )}
         </Link>
         {product.author && (
-          <p className="product-author">
+          <h1 className="product-author" dir="auto">
             {terms.length ? <SearchHighlight text={product.author} terms={terms} /> : product.author}
-          </p>
+          </h1>
         )}
         <div className="product-price">
           <span className="price-current">{formatPrice(product.price)}</span>

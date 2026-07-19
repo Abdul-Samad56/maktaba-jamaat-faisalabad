@@ -194,9 +194,12 @@ export default function ProductPage() {
             </h1>
           )}
           {product.author && (
-            <p>
-              <strong>Author:</strong> {product.author}
-            </p>
+            <div className="product-author-row">
+              <strong>Author:</strong>
+              <h1 className="product-author" dir="auto">
+                {product.author}
+              </h1>
+            </div>
           )}
           {product.bookLanguage && (
             <p>
