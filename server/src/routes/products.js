@@ -30,7 +30,7 @@ const CATEGORY_MAP = {
 };
 
 const LIST_FIELDS =
-  "title titleEn titleUr author publisher source category price regularPrice onSale available localImage image";
+  "title titleEn titleUr author publisher source category price regularPrice onSale available localImage image slug";
 
 const listCache = new Map();
 const LIST_CACHE_TTL = 60_000;
@@ -250,6 +250,7 @@ router.get("/", async (req, res) => {
             available: 1,
             localImage: 1,
             image: 1,
+            slug: 1,
           },
         },
       ]).option({ maxTimeMS: 12000 });
@@ -263,6 +264,10 @@ router.get("/", async (req, res) => {
         .maxTimeMS(8000)
         .lean();
     }
+
+    // Guarantee every listed book has its own /product/{slug} URL
+    const { ensureListItemSlugs } = await import("../utils/productSlug.js");
+    await ensureListItemSlugs(Product, items);
 
     const payload = {
       items,

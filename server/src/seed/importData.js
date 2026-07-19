@@ -218,7 +218,11 @@ async function main() {
   console.log(`Total: ${all.length} products`);
   await Product.deleteMany({});
   await Product.insertMany(all, { ordered: false });
-  console.log("Database seeded successfully");
+  const { backfillProductSlugs } = await import("../utils/productSlug.js");
+  const slugResult = await backfillProductSlugs(Product, { limit: all.length + 1000 });
+  console.log(
+    `Database seeded successfully — unique URLs assigned: ${slugResult.updated}/${slugResult.scanned}`
+  );
   await mongoose.disconnect();
 }
 

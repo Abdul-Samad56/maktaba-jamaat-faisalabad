@@ -267,11 +267,11 @@ router.post("/maintenance/bilingual-titles", authAdmin, async (_req, res) => {
   }
 });
 
-/** Backfill SEO slugs for every book (/product/{slug}). */
+/** Backfill unique SEO slugs for every book (/product/{slug}). */
 router.post("/maintenance/product-slugs", authAdmin, async (_req, res) => {
   try {
     const { backfillProductSlugs } = await import("../utils/productSlug.js");
-    const result = await backfillProductSlugs(Product, { limit: 5000 });
+    const result = await backfillProductSlugs(Product, { limit: 50000 });
     res.json({ ok: true, ...result });
   } catch (err) {
     res.status(500).json({ error: err.message });

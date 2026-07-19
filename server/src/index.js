@@ -98,7 +98,7 @@ app.get("/sitemap.xml", async (_req, res) => {
     const Product = (await import("./models/Product.js")).default;
     const { productPath, backfillProductSlugs } = await import("./utils/productSlug.js");
     // Ensure slugs exist so sitemap has SEO-friendly URLs
-    await backfillProductSlugs(Product, { limit: 5000 });
+    await backfillProductSlugs(Product, { limit: 50000 });
     const products = await Product.find({}, "_id slug updatedAt").sort({ updatedAt: -1 }).lean();
     const today = new Date().toISOString().slice(0, 10);
     const urls = [
@@ -755,6 +755,17 @@ async function start() {
     try {
       await connectDb(uri);
       console.log("MongoDB Atlas connected");
+      // Assign a unique /product/{slug} URL to every book that is missing one
+      Promise.all([import("./models/Product.js"), import("./utils/productSlug.js")])
+        .then(([productMod, slugMod]) =>
+          slugMod.backfillProductSlugs(productMod.default, { limit: 50000 })
+        )
+        .then((result) => {
+          if (result?.updated) {
+            console.log(`Product slugs ready: ${result.updated} unique URL(s) assigned`);
+          }
+        })
+        .catch((err) => console.warn("Product slug backfill skipped:", err.message));
     } catch (err) {
       console.error("MongoDB connection failed:", err.message);
       console.error("Check MONGODB_URI, Atlas Network Access (0.0.0.0/0), and password.");

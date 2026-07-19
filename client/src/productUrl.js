@@ -1,6 +1,6 @@
 /**
- * Canonical product URL path for SEO links.
- * Prefer slug when present: /product/{slug}
+ * Canonical product URL path — every book/item has its own unique URL.
+ * Prefer SEO slug: /product/{slug}  (falls back to /product/{_id})
  */
 
 export function productPath(product) {
