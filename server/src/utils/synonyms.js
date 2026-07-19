@@ -448,11 +448,67 @@ function levenshteinLite(a, b) {
 }
 
 /**
+ * Words/phrases that start with the typed prefix (Urdu + English).
+ * Typing one letter (e.g. ق or q) returns all matching dictionary words.
+ */
+export function getWordsByPrefix(seed, limit = 30) {
+  const n = normalizeSearch(seed);
+  if (!n) return [];
+
+  const words = [];
+  const seen = new Set();
+  const seedUrdu = /[\u0600-\u06FF]/.test(String(seed || ""));
+
+  const add = (text) => {
+    const raw = String(text || "").trim();
+    if (!raw) return;
+    const key = normalizeSearch(raw);
+    if (!key || !key.startsWith(n) || seen.has(key)) return;
+    // Keep short letter-browse lists readable (skip long multi-word phrases)
+    if (n.length <= 1 && key.split(/\s+/).length > 3) return;
+    seen.add(key);
+    words.push(raw);
+  };
+
+  for (const group of SYNONYM_GROUPS) {
+    for (const label of group) {
+      const nl = normalizeSearch(label);
+      if (!nl) continue;
+
+      if (nl.startsWith(n)) add(label);
+
+      // Also surface individual tokens that start with the prefix
+      for (const part of String(label).split(/\s+/)) {
+        if (normalizeSearch(part).startsWith(n)) add(part);
+      }
+    }
+  }
+
+  words.sort((a, b) => {
+    const na = normalizeSearch(a);
+    const nb = normalizeSearch(b);
+    if (na.length !== nb.length) return na.length - nb.length;
+    const aUrdu = /[\u0600-\u06FF]/.test(a);
+    const bUrdu = /[\u0600-\u06FF]/.test(b);
+    if (seedUrdu && aUrdu !== bUrdu) return aUrdu ? -1 : 1;
+    if (!seedUrdu && aUrdu !== bUrdu) return aUrdu ? 1 : -1;
+    return a.localeCompare(b, seedUrdu ? "ur" : "en");
+  });
+
+  return words.slice(0, limit);
+}
+
+/**
  * Build suggestion phrases for autocomplete (author-style + "all books" variants).
  */
 export function buildSuggestionPhrases(seed) {
   const n = normalizeSearch(seed);
   if (!n) return [];
+
+  // Short prefixes: strict starts-with word list (both scripts)
+  if (n.length <= 2) {
+    return getWordsByPrefix(seed, 30);
+  }
 
   const phrases = new Set();
   for (const group of SYNONYM_GROUPS) {

@@ -55,7 +55,7 @@ export async function search(req, res) {
 export async function suggestions(req, res) {
   try {
     const q = String(req.query.q || req.query.search || "").trim();
-    const limit = Math.min(20, Math.max(1, Number(req.query.limit) || 8));
+    const limit = Math.min(40, Math.max(1, Number(req.query.limit) || 8));
     const data = await getSuggestions(q, limit);
     res.setHeader("Cache-Control", "public, max-age=15, stale-while-revalidate=60");
     res.json(data);

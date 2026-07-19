@@ -15,6 +15,7 @@ import {
   POPULAR_SEARCHES,
   suggestSpellings,
   buildSuggestionPhrases,
+  getWordsByPrefix,
 } from "../utils/synonyms.js";
 import { scoreRelevance, isFuzzyMatch, maxEditsFor, levenshtein } from "../utils/fuzzy.js";
 import {
@@ -391,7 +392,63 @@ export async function searchProducts(query, options = {}) {
 }
 
 /**
+ * Catalog titles / keywords / authors that start with the typed prefix.
+ */
+async function getCatalogWordsByPrefix(query, limit = 16) {
+  const q = String(query || "").trim();
+  const n = normalizeSearch(q);
+  if (!n || limit < 1) return [];
+
+  const escaped = escapeRegex(q);
+  const prefixRe = new RegExp("^" + escaped, "i");
+
+  let rows = [];
+  try {
+    rows = await Product.find({
+      $or: [
+        { titleEn: prefixRe },
+        { titleUr: prefixRe },
+        { title: prefixRe },
+        { author: prefixRe },
+        { keywords: prefixRe },
+        { tags: prefixRe },
+      ],
+    })
+      .select("title titleEn titleUr author keywords tags")
+      .limit(Math.min(60, limit * 3))
+      .maxTimeMS(4000)
+      .lean();
+  } catch {
+    return [];
+  }
+
+  const words = [];
+  const seen = new Set();
+  const add = (text) => {
+    const raw = String(text || "").trim();
+    if (!raw) return;
+    const key = normalizeSearch(raw);
+    if (!key || !key.startsWith(n) || seen.has(key)) return;
+    if (n.length <= 1 && key.split(/\s+/).length > 4) return;
+    seen.add(key);
+    words.push(raw);
+  };
+
+  for (const p of rows) {
+    add(p.titleEn);
+    add(p.titleUr);
+    add(p.title);
+    add(p.author);
+    for (const k of p.keywords || []) add(k);
+    for (const t of p.tags || []) add(t);
+  }
+
+  return words.slice(0, limit);
+}
+
+/**
  * Instant autocomplete suggestions while typing.
+ * Single letters return prefix-matching words in Urdu + English.
  */
 export async function getSuggestions(query, limit = 8) {
   const q = String(query || "").trim();
@@ -405,16 +462,31 @@ export async function getSuggestions(query, limit = 8) {
     };
   }
 
-  const cacheKey = normalizeSearch(q) + ":" + limit;
+  const nq = normalizeSearch(q);
+  const isLetterBrowse = nq.length <= 2;
+  const effectiveLimit = isLetterBrowse ? Math.max(limit, 28) : limit;
+
+  const cacheKey = nq + ":" + effectiveLimit;
   const cached = getSuggestCache(cacheKey);
   if (cached) return cached;
 
-  const phraseSuggestions = buildSuggestionPhrases(q).slice(0, limit);
+  const wordLimit = isLetterBrowse ? effectiveLimit : Math.min(effectiveLimit, 12);
+  const dictWords = getWordsByPrefix(q, wordLimit);
+  const phraseSuggestions = isLetterBrowse
+    ? dictWords
+    : buildSuggestionPhrases(q).slice(0, effectiveLimit);
+
+  const catalogWords = await getCatalogWordsByPrefix(
+    q,
+    isLetterBrowse ? Math.min(16, effectiveLimit) : 6
+  );
+
   let products = [];
+  const productLimit = isLetterBrowse ? Math.min(8, effectiveLimit) : effectiveLimit;
 
   if (isAtlasEnabled()) {
     try {
-      const pipeline = buildAtlasSuggestPipeline(q, limit);
+      const pipeline = buildAtlasSuggestPipeline(q, productLimit);
       if (pipeline) {
         products = await Product.aggregate(pipeline).option({ maxTimeMS: 5000 });
         atlasAvailable = true;
@@ -432,56 +504,71 @@ export async function getSuggestions(query, limit = 8) {
     if (filter) {
       products = await Product.find(filter)
         .select("title titleEn titleUr author slug")
-        .limit(limit)
+        .limit(productLimit)
         .maxTimeMS(5000)
         .lean();
     }
   }
 
-  // Build unified suggestion list
+  // Build unified suggestion list — words first for letter browsing
   const suggestions = [];
   const seen = new Set();
 
-  for (const text of phraseSuggestions) {
+  const pushWord = (text, type = "word") => {
     const key = normalizeSearch(text);
-    if (seen.has(key)) continue;
+    if (!text || !key || seen.has(key)) return false;
     seen.add(key);
-    suggestions.push({ type: "synonym", text });
-    if (suggestions.length >= limit) break;
+    suggestions.push({ type, text });
+    return true;
+  };
+
+  for (const text of phraseSuggestions) {
+    pushWord(text, "word");
+    if (suggestions.length >= effectiveLimit) break;
   }
 
-  for (const p of products) {
-    const label = p.titleUr || p.titleEn || p.title;
-    const key = normalizeSearch(label);
-    if (!label || seen.has(key)) continue;
-    seen.add(key);
-    suggestions.push({
-      type: "product",
-      text: label,
-      author: p.author || "",
-      slug: p.slug,
-      id: p._id,
-    });
-    if (suggestions.length >= limit + 4) break;
+  if (suggestions.length < effectiveLimit) {
+    for (const text of catalogWords) {
+      pushWord(text, "word");
+      if (suggestions.length >= effectiveLimit) break;
+    }
   }
 
-  // Author suggestions
-  for (const p of products) {
-    if (!p.author) continue;
-    const key = normalizeSearch(p.author);
-    if (seen.has(key)) continue;
-    const nq = normalizeSearch(q);
-    if (!key.includes(nq) && !nq.includes(key.slice(0, 3))) continue;
-    seen.add(key);
-    suggestions.push({ type: "author", text: p.author });
-    if (/[\u0600-\u06FF]/.test(p.author)) {
-      suggestions.push({ type: "author", text: `${p.author} کی تمام کتابیں` });
+  if (!isLetterBrowse || suggestions.length < effectiveLimit) {
+    for (const p of products) {
+      const label = p.titleUr || p.titleEn || p.title;
+      const key = normalizeSearch(label);
+      if (!label || seen.has(key)) continue;
+      seen.add(key);
+      suggestions.push({
+        type: "product",
+        text: label,
+        author: p.author || "",
+        slug: p.slug,
+        id: p._id,
+      });
+      if (suggestions.length >= effectiveLimit + (isLetterBrowse ? 0 : 4)) break;
+    }
+
+    // Author suggestions (skip noisy extras on single-letter browse)
+    if (!isLetterBrowse) {
+      for (const p of products) {
+        if (!p.author) continue;
+        const key = normalizeSearch(p.author);
+        if (seen.has(key)) continue;
+        if (!key.includes(nq) && !nq.includes(key.slice(0, 3))) continue;
+        seen.add(key);
+        suggestions.push({ type: "author", text: p.author });
+        if (/[\u0600-\u06FF]/.test(p.author)) {
+          suggestions.push({ type: "author", text: `${p.author} کی تمام کتابیں` });
+        }
+      }
     }
   }
 
   const payload = {
-    suggestions: suggestions.slice(0, Math.max(limit, 10)),
-    products: products.slice(0, limit),
+    suggestions: suggestions.slice(0, Math.max(effectiveLimit, 10)),
+    products: products.slice(0, productLimit),
   };
   setSuggestCache(cacheKey, payload);
   return payload;

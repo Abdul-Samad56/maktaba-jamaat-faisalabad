@@ -380,7 +380,7 @@ button {
   border: 1px solid var(--border);
   border-radius: 8px;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
-  max-height: min(70vh, 420px);
+  max-height: min(75vh, 520px);
   overflow-y: auto;
   z-index: 50;
 }
@@ -449,6 +449,17 @@ button {
   color: var(--muted);
   flex-shrink: 0;
   margin-top: 0.1rem;
+}
+
+.sug-icon-word {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin-top: 0.2rem;
+}
+
+.smart-search-section li > button:first-child .sug-text {
+  text-align: start;
 }
 
 .sug-body {

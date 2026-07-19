@@ -93,8 +93,8 @@ export async function fetchProduct(id) {
   return data;
 }
 
-/** Autocomplete suggestions while typing. */
-export async function fetchSearchSuggestions(q, limit = 8, signal) {
+/** Autocomplete suggestions while typing (higher limit for letter-prefix browse). */
+export async function fetchSearchSuggestions(q, limit = 28, signal) {
   const qs = new URLSearchParams({ q: q || "", limit: String(limit) });
   const res = await fetch(`${API_BASE}/search/suggest?${qs}`, {
     signal,

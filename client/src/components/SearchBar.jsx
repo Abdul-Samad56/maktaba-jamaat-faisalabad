@@ -77,8 +77,10 @@ export default function SearchBar({ onMenuClose } = {}) {
     debounceRef.current = setTimeout(async () => {
       const controller = new AbortController();
       abortRef.current = controller;
+      // Single letters need a fuller word list (Urdu + English)
+      const suggestLimit = trimmed.length <= 2 ? 28 : 12;
       try {
-        const data = await fetchSearchSuggestions(trimmed, 8, controller.signal);
+        const data = await fetchSearchSuggestions(trimmed, suggestLimit, controller.signal);
         if (controller.signal.aborted) return;
         setSuggestions(data?.suggestions || []);
       } catch (err) {
@@ -86,7 +88,7 @@ export default function SearchBar({ onMenuClose } = {}) {
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
-    }, 180);
+    }, 120);
   }, []);
 
   const commitSearch = useCallback(
@@ -286,16 +288,28 @@ export default function SearchBar({ onMenuClose } = {}) {
           {value.trim() && (
             <div className="smart-search-section">
               <div className="smart-search-section-head">
-                <span>{loading ? "Searching…" : "Suggestions"}</span>
+                <span>
+                  {loading
+                    ? "Searching… / تلاش…"
+                    : value.trim().length <= 2
+                      ? "Words / الفاظ"
+                      : "Suggestions / تجاویز"}
+                </span>
               </div>
               {loading && !suggestions.length && (
                 <div className="smart-search-loading">
                   <span className="smart-search-spinner" />
-                  <span>Finding books…</span>
+                  <span>
+                    {value.trim().length <= 2
+                      ? "Finding words… / الفاظ ڈھونڈ رہے ہیں…"
+                      : "Finding books… / کتابیں ڈھونڈ رہے ہیں…"}
+                  </span>
                 </div>
               )}
               {!loading && !suggestions.length && (
-                <p className="smart-search-empty">Press Enter to search for &ldquo;{value.trim()}&rdquo;</p>
+                <p className="smart-search-empty">
+                  Press Enter to search for &ldquo;{value.trim()}&rdquo; / انٹر دبائیں
+                </p>
               )}
               <ul>
                 {suggestions.map((s, i) => (
@@ -308,12 +322,27 @@ export default function SearchBar({ onMenuClose } = {}) {
                       onMouseEnter={() => setActiveIndex(i)}
                       onClick={() => commitSearch(s.text)}
                     >
-                      <span className="sug-icon" aria-hidden="true">
-                        {s.type === "author" ? "✎" : s.type === "product" ? "▣" : "⌕"}
+                      <span
+                        className={`sug-icon${s.type === "word" ? " sug-icon-word" : ""}`}
+                        aria-hidden="true"
+                      >
+                        {s.type === "author"
+                          ? "✎"
+                          : s.type === "product"
+                            ? "▣"
+                            : s.type === "word"
+                              ? "Aa"
+                              : "⌕"}
                       </span>
                       <span className="sug-body">
-                        <span className="sug-text">{s.text}</span>
-                        {s.author ? <span className="sug-meta">{s.author}</span> : null}
+                        <span className="sug-text" dir="auto">
+                          {s.text}
+                        </span>
+                        {s.author ? (
+                          <span className="sug-meta" dir="auto">
+                            {s.author}
+                          </span>
+                        ) : null}
                       </span>
                     </button>
                   </li>
