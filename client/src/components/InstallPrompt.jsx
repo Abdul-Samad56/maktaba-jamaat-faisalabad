@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { trackAppInstall } from "../analytics";
 
 const DISMISS_KEY = "maktaba-install-dismissed";
 
@@ -28,14 +29,22 @@ export default function InstallPrompt() {
       setVisible(true);
     };
 
+    const onInstalled = () => {
+      trackAppInstall("accepted");
+    };
+
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
+    window.addEventListener("appinstalled", onInstalled);
 
     if (isIos()) {
       setShowIos(true);
       setVisible(true);
     }
 
-    return () => window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
   }, []);
 
   const dismiss = () => {
@@ -48,7 +57,9 @@ export default function InstallPrompt() {
     if (!deferred) return;
     deferred.prompt();
     try {
-      await deferred.userChoice;
+      const choice = await deferred.userChoice;
+      // "accepted" is also sent via appinstalled — avoid double count
+      if (choice?.outcome === "dismissed") trackAppInstall("dismissed");
     } catch {
       /* ignore */
     }

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
+import { trackBookView } from "../analytics";
 import Seo from "../components/Seo";
 import { WHATSAPP_NUMBER } from "../components/WhatsAppFloat";
 import { fetchProduct, formatPrice, imageUrl, peekProduct, wakeApi } from "../api";
@@ -10,6 +11,7 @@ import {
   productSeoTitle,
 } from "../seoKeywords";
 import { SITE_NAME, absoluteUrl } from "../siteConfig";
+import { authorHref, publisherHref } from "../entityUrl";
 import { productPath } from "../productUrl";
 
 function categorySearchPath(category) {
@@ -64,6 +66,10 @@ export default function ProductPage() {
       cancelled = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (product) trackBookView(product);
+  }, [product?._id]);
 
   const seo = useMemo(() => {
     if (!product) return null;
@@ -196,9 +202,21 @@ export default function ProductPage() {
           {product.author && (
             <div className="product-author-row">
               <strong>Author:</strong>
-              <h1 className="product-author" dir="auto">
-                {product.author}
-              </h1>
+              <Link to={authorHref(product)} className="product-author-link">
+                <h1 className="product-author" dir="auto">
+                  {product.author}
+                </h1>
+              </Link>
+            </div>
+          )}
+          {(product.publisher || product.source) && (
+            <div className="product-author-row">
+              <strong>Publisher:</strong>
+              <Link to={publisherHref(product)} className="product-publisher-link">
+                <span className="product-publisher" dir="auto">
+                  {product.publisher || product.source}
+                </span>
+              </Link>
             </div>
           )}
           {product.bookLanguage && (

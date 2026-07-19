@@ -1,10 +1,12 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import Analytics from "./components/Analytics";
 import Footer from "./components/Footer";
 import Header from "./components/Header";
 import InstallPrompt from "./components/InstallPrompt";
 import WhatsAppFloat from "./components/WhatsAppFloat";
 import { isLoggedIn } from "./admin/adminApi";
+import EntityPage from "./pages/EntityPage";
 import HomePage from "./pages/HomePage";
 import ProductPage from "./pages/ProductPage";
 
@@ -21,6 +23,8 @@ function PublicSite() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/product/:id" element={<ProductPage />} />
+        <Route path="/author/:slug" element={<EntityPage kind="author" />} />
+        <Route path="/publisher/:slug" element={<EntityPage kind="publisher" />} />
       </Routes>
       <Footer />
       <InstallPrompt />
@@ -36,6 +40,7 @@ function AdminFallback() {
 export default function App() {
   return (
     <BrowserRouter>
+      <Analytics />
       <Routes>
         <Route
           path="/admin/login"
